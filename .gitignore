@@ -41,3 +41,6 @@ vignettes/*.pdf
 
 # Ignore the R project file 
 *.Rproj
+
+#Ignore fast5 files
+*.fast5
