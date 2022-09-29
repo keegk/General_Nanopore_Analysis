@@ -1,0 +1,23 @@
+---
+title: "Investigating the first sequencing_summary file generated from my recursive.sh bash script on the first 20 fast5 pass directories (each containing approx. 4000 fast5 files)"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+sequencing_summary <- read.csv ("sequencing_summary.txt", header =T)
+#sequencing_summary
+#head (sequencing_summary)
+View (sequencing_summary)
+#View(sequencing_summary)
+nrow(sequencing_summary)
+```
+## When I load in the summary sequencing file, I view it and also ask it to give me the total row numbers for this sequencing file. The reason I do this is because the 20 fast5 directories after rebasecalling using recursive.sh bash script at num_callers 8, gave 20 fastq pass files and 20 fastq fail files. When I rebasecalled Davids MinION skip data from January 2022, I had 20 fats5 files (not directories) and I got 10 fastq pass files back. So, when rebasecalling the seal MinION data, I would have expected that per fast5 directory, I would have 4000 fastq files per directory (approx. 4000 fast5 files are listed in each of the 20 fast5 pass directories I rebasecalled). Whats happened instead is that it seems there is one fastq file generated **per** fast5 directory, not per fast5 file. I asked for nrow(sequencin_summary.txt) because I wanted to see if all the fast5 files were included in this text file (as I was suspicious that not all the fast5 files were being rebasecalled which would explain the much lower amount of fastq files generated. However, the nrow command returned 84,000 rows e.g fast5 files, which is the  correct amount of fast5 files if there are 4000 files per directory and I have rebasecalled 20 pass directories (4000 x 20 = 80,000))
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

@@ -1,0 +1,48 @@
+---
+title: "Merging summary sequencing text files after rebasecalling"
+output: html_notebook
+---
+ 
+Taken from https://datacornering.com/how-to-combine-files-with-r-and-add-filename-column/#:~:text=To%20combine%20files%20with%20R%20and%20add%20filename,5%205.%20Unlist%20result%20and%20do%20some%20finalization:
+
+```{r}
+require(dplyr)
+#install.packages("data.table")
+require(data.table)
+
+# read file path
+all_paths <-
+  list.files(path = "C:/Users/keegk/OneDrive - moredungroup/Karen Keegan/Training/Bioinformatics/Training with Nick/Seal MinION data/summary_sequencing_files/",
+             pattern = "*.txt",
+             full.names = TRUE)
+
+# read file content
+all_content <-
+  all_paths %>%
+  lapply(read.table,
+         header = TRUE,
+         sep = "\t",
+         encoding = "UTF-8")
+
+# read file name
+all_filenames <- all_paths %>%
+  basename() %>%
+  as.list()
+
+# combine file content list and file name list
+all_lists <- mapply(c, all_content, all_filenames, SIMPLIFY = FALSE)
+
+all_result <- rbindlist(all_lists, fill = T)
+# change column name
+names(all_result)[3] <- "File.Path"
+
+```
+
+
+
+
+
+```{r}
+nrow(all_result)
+```
+

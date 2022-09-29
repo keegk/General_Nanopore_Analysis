@@ -1,0 +1,32 @@
+---
+title: "Investigating the Nanopore fast5 files from Seal MinION run"
+output: html_notebook
+---
+
+This notebook is for the initial investigation of fast5 files from a MinION run on a grey seal sample that predates my PhD. The data generated hasn't been explored in great detail outside of some exploratory MinKNOW/WIMP. I want to analyse the data in greater detail which will require first investigating the condition of the pass/skip/fail fast5 files generated before rebasecalling all the pass/skip/fail fast5 files on the grufffalo cluster using my own bash scripts and doing further analysis such as BLAST etc.
+
+This notebook is solely for the initial investigation of the pass/skip/fail fast5 files generated. As there are so many fast5 files generated, I have only taken one fast5 file from the first subdirectory of each pass/skip/fail directory
+
+
+Part One: Installing BiocManager and rhdf5 package (I did this in console as only needed to be installed once)
+
+```{r}
+#if (!require("BiocManager", quietly = TRUE))
+   # install.packages("BiocManager")
+#BiocManager::install(version = "3.14")
+#BiocManager::install("rhdf5")
+```
+
+
+r setup means that when you run this scipt in its entirety, the line of code under r setup must run first (for example if you had library function to load in packages etc.)
+
+```{r setup}
+library(rhdf5)
+```
+
+
+Loading the data (one fast5 file from the first subdirectory in each pass/skip/fail directory)
+
+```{r loadingdata}
+read.
+```
