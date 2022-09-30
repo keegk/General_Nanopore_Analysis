@@ -3,7 +3,7 @@ title: "Merging summary sequencing text files after rebasecalling"
 output: html_notebook
 ---
  
-Taken from https://datacornering.com/how-to-combine-files-with-r-and-add-filename-column/#:~:text=To%20combine%20files%20with%20R%20and%20add%20filename,5%205.%20Unlist%20result%20and%20do%20some%20finalization:
+Code taken from *https://datacornering.com/how-to-combine-files-with-r-and-add-filename-column/#:~:text=To%20combine%20files%20with%20R%20and%20add%20filename,5%205.%20Unlist%20result%20and%20do%20some%20finalization*:
 
 ```{r}
 require(dplyr)
