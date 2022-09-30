@@ -27,6 +27,42 @@ library(rhdf5)
 
 Loading the data (one fast5 file from the first subdirectory in each pass/skip/fail directory)
 
+First fast5 file I am checking is one from the pass directory:
+
 ```{r loadingdata}
-read.
+h5ls("fast5/minions_imac_moredun_net_20180123_FAH41635_MN24448_sequencing_run_Seal_mum_pool_30926_read_4095_ch_442_strand.fast5")
 ```
+
+
+Looking at the Analyses on this pass fast5 file:
+
+```{r}
+#h5ls("fast5/minions_imac_moredun_net_20180123_FAH41635_MN24448_sequencing_run_Seal_mum_pool_30926_read_4095_ch_442_strand.fast5")
+
+mydata <- h5read("fast5/minions_imac_moredun_net_20180123_FAH41635_MN24448_sequencing_run_Seal_mum_pool_30926_read_4095_ch_442_strand.fast5", "/Analyses")
+
+mydata
+```
+
+Looking at the raw signal on this pass fast5 file:
+
+```{r}
+#h5ls("fast5/minions_imac_moredun_net_20180123_FAH41635_MN24448_sequencing_run_Seal_mum_pool_30926_read_4095_ch_442_strand.fast5")
+
+raw <- h5read("fast5/minions_imac_moredun_net_20180123_FAH41635_MN24448_sequencing_run_Seal_mum_pool_30926_read_4095_ch_442_strand.fast5", "/Raw")
+
+raw
+```
+
+
+
+
+h5dump -- Enables a user to examine all the contents of an HDF5 file in one go:
+
+```{r}
+h5dump ("fast5/minions_imac_moredun_net_20180123_FAH41635_MN24448_sequencing_run_Seal_mum_pool_30926_read_4095_ch_442_strand.fast5", all = TRUE)
+```
+
+
+
+
