@@ -3,13 +3,89 @@ title: "Investigating the first sequencing_summary file generated from my recurs
 output: html_notebook
 ---
 
+I load tidyverse at the start of this notebook, as it is a convenient package that includes tidyr, ggplot2, dplyramong other useful packages.
+
+```{r set up}
+#install.packages("tidyverse")
+library(tidyverse)
+```
 
 ```{r}
-sequencing_summary <- read.csv ("sequencing_summary.txt", header =T)
+sequencing_summary <- read_delim ("C:/Users/keegk/OneDrive - moredungroup/Karen Keegan/Training/Bioinformatics/Training with Nick/Seal MinION data/Seal_MinION/1_20_recursive.sh_num_callers8/1_20_num_callers_8/sequencing_summary.txt")
 #sequencing_summary
 #head (sequencing_summary)
 View (sequencing_summary)
 #View(sequencing_summary)
 nrow(sequencing_summary)
 ```
- When I load in the summary sequencing file, I view it and also ask it to give me the total row numbers for this sequencing file. The reason I do this is because the 20 fast5 directories after rebasecalling using recursive.sh bash script at num_callers 8, gave 20 fastq pass files and 20 fastq fail files. When I rebasecalled Davids MinION skip data from January 2022, I had 20 fats5 files (not directories) and I got 10 fastq pass files back. So, when rebasecalling the seal MinION data, I would have expected that per fast5 directory, I would have 4000 fastq files per directory (approx. 4000 fast5 files are listed in each of the 20 fast5 pass directories I rebasecalled). Whats happened instead is that it seems there is one fastq file generated **per** fast5 directory, not per fast5 file. I asked for nrow(sequencin_summary.txt) because I wanted to see if all the fast5 files were included in this text file (as I was suspicious that not all the fast5 files were being rebasecalled which would explain the much lower amount of fastq files generated. However, the nrow command returned 84,000 rows e.g fast5 files, which is the  correct amount of fast5 files if there are 4000 files per directory and I have rebasecalled 20 pass directories (4000 x 20 = 80,000))
+ When I load in the summary sequencing file, I view it and also ask it to give me the total row numbers for this sequencing file. The reason I do this is because the 20 fast5 directories after rebasecalling using recursive.sh bash script at num_callers 8, gave 20 fastq pass files and 20 fastq fail files. When I rebasecalled Davids MinION skip data from January 2022, I had 20 fats5 files (not directories) and I got 10 fastq pass files back. So, when rebasecalling the seal MinION data, I would have expected that per fast5 directory, I would have 4000 fastq files per directory (approx. 4000 fast5 files are listed in each of the 20 fast5 pass directories I rebasecalled). Whats happened instead is that it seems there is one fastq file generated **per** fast5 directory, not per fast5 file. I asked for nrow(sequencin_summary.txt) because I wanted to see if all the fast5 files were included in this text file (as I was suspicious that not all the fast5 files were being rebasecalled which would explain the much lower amount of fastq files generated. However, the nrow command returned 84,000 rows e.g fast5 files, which is the  correct amount of fast5 files if there are 4000 files per directory and I have rebasecalled 20 pass directories (4000 x 20 = 80,000)).
+ 
+ 
+ 
+ 
+*Now I will plot different variables from the summary sequencing file, to get a better idea of the quality of the data:*
+
+**Step One: What are the read length and q score distributions?**
+ 
+```{r sequence lengths}
+nbins <- floor(sqrt(nrow(sequencing_summary)))
+
+sequencing_summary %>%
+  ggplot(aes(x = sequence_length_template)) +
+  geom_histogram (bins =nbins) +
+  labs(x = "read length", y = "count",
+       title = "read length summary historgram")
+
+sequencing_summary %>%
+  ggplot(aes(x=sequence_length_template)) +
+  geom_histogram(bins=nbins) +
+  coord_cartesian(ylim = c(0, 100)) +
+  labs(x = "read length", y = "count",
+     title = "read length summary historgram")
+```
+The bulk of the read lengths are between 0-20kb, but there are read lengths of up to and greater than 75kb.
+
+```{r}
+sequencing_summary%>% 
+  ggplot(aes(x = mean_qscore_template)) +
+  geom_histogram(bins = nbins) +
+  labs(x = "read mean quality score", y = "count",
+     title = "read quality score historgram")
+
+mean(sequencing_summary$mean_qscore_template)
+```
+
+Most of the reads have q scores between 10-15, the average read having a q score of 11.6. Note there is a slight peak in q scores around q = 6 also, which will be pulling down the mean score.
+
+**Step Two - How long did it take the reads to be sequenced and how many reads in total were there across the first 20 fast5 pass directories?**
+
+```{r}
+sequencing_summary$Minutes <- floor(sequencing_summary$duration/60)
+
+ ggplot(sequencing_summary) + geom_point(
+aes(x = Minutes, y = sequence_length_template )) +
+  labs(x = "Duration in minutes", y = "Sequencing length of the read",
+     title = "Sequencing length over time")
+ 
+total_reads <- nrow(sequencing_summary)
+total_reads
+```
+
+Read lengths of </= ~25kb were sequenced in 0 minutes, ~25-50kb were sequenced in 1 minute and ~50-75+kb were sequenced in 2-3 minutes. There were a total of 84,000 reads generated across this summary sequencing file (this isn't the number of reads across the whole MinION run, it is only the reads generated from 20 of the fast5 pass directories.
+
+**Step Three - What percentage of those reads passed?**
+```{r}
+passed_reads <- subset(sequencing_summary, passes_filtering == "TRUE")
+passed <- nrow(passed_reads)
+percentage <- passed/total_reads# this is my passed reads over my total reads
+percentage
+Percentage <- format(round(percentage, 2))
+print(paste(Percentage, "is the percentage of reads that passed"))
+```
+86% of the reads for these 20 fast5 'pass' directories passed when rebasecalled.
+
+
+
+
+
+
