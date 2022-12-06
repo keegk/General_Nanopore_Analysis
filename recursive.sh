@@ -6,3 +6,7 @@ export PATH=/home/kkeegan/projects/jhi/bioss/kkeegan_onttestdata/ont-guppy-cpu/b
 
 
 guppy_basecaller --recursive --flowcell FLO-MIN106  --kit SQK-LSK109
+
+
+guppy_basecaller --input_path $1 --save_path $2 --recursive --flowcell FLO-MIN106  --kit SQK-LSK109
+
