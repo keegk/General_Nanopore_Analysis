@@ -9,5 +9,5 @@ echo "Save path is $2"
 
 
 
-guppy_basecaller --input_path $1 --save_path $2 --recursive --flowcell FLO-MIN106  --kit SQK-RAD004
+guppy_basecaller --input_path $1 --save_path $2 --recursive --flowcell FLO-MIN106  --kit SQK-LSK109
 
