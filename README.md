@@ -22,7 +22,20 @@ With the addition of another bash script (*dircount.sh*) I can now rebasecall al
 
 I then merged the fastq files from the rebasecalled fast5's by using the script '*ifthencat.sh*' which searches within each of the fast5 output files for a fastq file and concatenates what it finds into a single merged fastq file.
 
-This dataset had duplicate reads and so to filter those out before doing a BLAST analysis, I use the package *SeqKit* which has many features associated with tidying up fast5 or fastq files, including removing duplicate files and keeping the first of the duplicate files only, which is what I am using it for.
+This dataset had duplicate reads and so to filter those out before doing a BLAST analysis, I use the package *SeqKit* which has many features associated with tidying up fast5 or fastq files, including removing duplicate files and keeping the first of the duplicate files only, which is what I am using it for. The code I used was first, setting up an interactive job using srsh command and then: **[kkeegan@n19-32-192-crossbones dummy_merged_fastqs]$ seqkit rmdup merged.fastq -s -o clean.fastq
+[INFO] XXXX duplicated records removed**
+
+*TO NOTE BEFORE BASECALLING:*
+
+1) Back up your fast5 files before you rebasecall. The way the dircount.sh script works is that it empties the input directory (your 'raw'fast5 directories) as it sends them to recursive.sh for rebasecalling, so you need to have a back up directory of your fast5 files that remain untouched in case of a future need. Optional to do this for the fastq files generated after rebasecalling too, to preserve in case of directory/file corruption.
+
+2)You wil likely need to give executable rights to .sh scripts if running for the first time, otherwise the bash scrip won't run. This is done by typing the code 'chmod a+rwx <filename>.sh' on the cluster, within the directory your .sh file is located
+
+3) You may need to change the kit/flow cell name written in the recursive.sh file if you rebasecall new data using a new kit. 
+
+4) I often had to set the path to guppy before I ran it. The path for this is written in the recursive.sh file but if you run guppy without using this bash script, you will likely need to set the path for guppy, in my case the code for this is 'export PATH=/home/kkeegan/projects/jhi/bioss/kkeegan_onttestdata/ont-guppy-cpu/bin:$PATH'
+
+
 
 **R notebooks**
 
