@@ -29,7 +29,7 @@ This dataset had duplicate reads and so to filter those out before doing a BLAST
 
 1) Back up your fast5 files before you rebasecall. The way the dircount.sh script works is that it empties the input directory (your 'raw'fast5 directories) as it sends them to recursive.sh for rebasecalling, so you need to have a back up directory of your fast5 files that remain untouched in case of a future need. Optional to do this for the fastq files generated after rebasecalling too, to preserve in case of directory/file corruption.
 
-2)You wil likely need to give executable rights to .sh scripts if running for the first time, otherwise the bash scrip won't run. This is done by typing the code 'chmod a+rwx <filename>.sh' on the cluster, within the directory your .sh file is located
+2) You wil likely need to give executable rights to .sh scripts if running for the first time, otherwise the bash scrip won't run. This is done by typing the code 'chmod a+rwx <filename>.sh' on the cluster, within the directory your .sh file is located
 
 3) You may need to change the kit/flow cell name written in the recursive.sh file if you rebasecall new data using a new kit. 
 
