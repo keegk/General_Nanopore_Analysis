@@ -18,7 +18,7 @@ I have rebasecalled a handful of the the pass/skip/fail fast5 files using the ba
 
 *** UPDATE 06/12/2022 ****
 
-With the addition of another bash script (*dircount.sh*) I can now rebasecall all fast5 files in one directory (from either the pass/skip/fail) in one go as this dircount.sh script searches a directory for all fast5 files (4000 per directory) then runs the recursive.sh on  each of the fast5 files, spawning 4000 jobs simultaneously on the cluster that each take a few seconds to complete (takes ~5 minutes to complete a single pass directory with 4000 fast5 files), instead of having to split my directories into 20 (as outline previously above) and wait a day to rebasecall this chunk and then repeat etc. The outputs for all the fast5 files all go to *one* output directory that assigns a * unique sequential number* to each output fast5 file so that they don't overwrite each other each time you rebasecall a directory. 
+With the addition of another bash script (*dircount.sh*) I can now rebasecall all fast5 files in one directory (from either the pass/skip/fail) in one go as this dircount.sh script searches a directory for all fast5 files (4000 per directory) then runs the recursive.sh on  each of the fast5 files, spawning 4000 jobs simultaneously on the cluster that each take a few seconds to complete (takes ~5 minutes to complete a single pass directory with 4000 fast5 files), instead of having to split my directories into 20 (as outline previously above) and wait a day to rebasecall this chunk and then repeat etc. The outputs for all the fast5 files all go to *one* output directory that assigns a * unique sequential number* to each output fast5 file so that they don't overwrite each other each time you rebasecall a directory.
 
 I then merged the fastq files from the rebasecalled fast5's by using the script '*ifthencat.sh*' which searches within each of the fast5 output files for a fastq file and concatenates what it finds into a single merged fastq file.
 
@@ -33,7 +33,9 @@ This dataset had duplicate reads and so to filter those out before doing a BLAST
 
 3) You may need to change the kit/flow cell name written in the recursive.sh file if you rebasecall new data using a new kit. 
 
-4) I often had to set the path to guppy before I ran it. The path for this is written in the recursive.sh file but if you run guppy without using this bash script, you will likely need to set the path for guppy, in my case the code for this is 'export PATH=/home/kkeegan/projects/jhi/bioss/kkeegan_onttestdata/ont-guppy-cpu/bin:$PATH'
+4)  Make sure you run the dircount.sh script on the your scratch space rather than home space on the cluster, as fast5 files will get sent to where you run the dircount.sh script and then the second script (recursive.sh) acts on these files. The final output for the rebasecalled files should also go to a directory in your scratch space. Large amounts of files in your home space is not recommended on the cluster and it will be flagged with the cluster admin.
+
+5) I often had to set the path to guppy before I ran it. The path for this is written in the recursive.sh file but if you run guppy without using this bash script, you will likely need to set the path for guppy, in my case the code for this is 'export PATH=/home/kkeegan/projects/jhi/bioss/kkeegan_onttestdata/ont-guppy-cpu/bin:$PATH'
 
 
 
