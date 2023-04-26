@@ -60,6 +60,12 @@ I then check for any duplicated reads that may be present and I also convert thi
 In order to run smoothly on the cluster (launching several small BLAST jobs rather than one extremely large BLAST search) I split my clean.fasta files into several hundred fasta files by using the script fasta_split.sh. However next time I run this I can split the original clean fasta file into fewer individual files as I had 200 individual files when I set the split to 10,000 lines which each only took 2-5 hours to BLAST on cluster (small job). So in future increase this split to 100,000 or so and run BLAST jobs set to medium partition on each fasta file.
 
 
+**Bash script for BLAST analysis using NCBI nt database**
 
+The blast script I used is called blast7.sh (the 7 just referes to the 7th version I tried that I liked and decided to go further with). I was playing around with the output with previous bas scripts and the number of max target seqs to choose. For blast7.sh I included in the tabular ouput the scientific name of organisms so they would be easy to deduce quickly. I also set max-target-seqs to 10 (previous practice runs we had set this to 5). I originally didnt want to set a limit on max-target-seqs but even with requesting Gb memorey up to 32Gb on cluster, the script would run out of memory and fail, so I settled on 10 (default I think is 5000). The only issue here is that max-target-seqs has been criticised in the past for only giving the first e value hits it finds in the database (rather than the best) so I am not sure if using max-taget-seqs is the best option, but I'm not yet sure how to get around this just now.
+
+**Bash script for concatenating multiple blast.txt files into one and compressing this**
+
+Once I had run all the small BLAST jobs ~200 times (I had about 200 individual fasta files from my fasta_split.sh script above) I then wanted to concatenate these all back into one large blast text file and also compress this for storage. To do this I wrote the script concat.blast.sh which uses a for loop to find any .txt files, concatenates them into one text file and the using pigz (as recommended by the cluster help page) to compress this file. Compressed blast text reulst file is still approx 25Gb in size. I can then use this in R to pick out most common species from seal samples etc. and further downstream analsysis.
 
                                              
