@@ -53,7 +53,13 @@ There are several R notebooks in this repository:
 
 Called concat.fastq, this script uses the find command to find all files ending in .fastq within a directory and then uses a for loop to pick out each of these fast q files which have the name <pass> in their pathname (as I do not want to include the failed fast q reads) and concatenates them all together into one very large single fastq file.
 
-I then check for any duplicated reads that may be present and I also convert this fastq file to fasta for BLAST ANALYSIS not using a bash script but by running an interactive job on the cluster (srsh command to initiate interactive job) and for trimming, use the package SeqKit (conda install -c bioconda seqkit) and running seqkit rmdup concat.fastq -s -o clean.fastq. To convert this clean.fastq to clean.fasta, I simply use the package seqtk (conda install -c bioconda seqtk) and convert to fasta using 'seqtk seq -a clean.fastq > clean.fasta'
+I then check for any duplicated reads that may be present and I also convert this fastq file to fasta for BLAST ANALYSIS not using a bash script but by running an interactive job on the cluster (srsh command to initiate interactive job) and for trimming, use the package SeqKit (conda install -c bioconda seqkit) and running seqkit rmdup concat.fastq -s -o clean.fastq. To convert this clean.fastq to clean.fasta, I simply use the package seqtk (conda install -c bioconda seqtk) and convert to fasta using 'seqtk seq -a clean.fastq > cleaned_fasta.fasta'. cleaned_fasta.fasta was approx 2.8Gb in size.
+
+**Bash script for splitting fasta file into multiple fasta files for BLAST**
+
+In order to run smoothly on the cluster (launching several small BLAST jobs rather than one extremely large BLAST search) I split my clean.fasta files into several hundred fasta files by using the script fasta_split.sh. However next time I run this I can split the original clean fasta file into fewer individual files as I had 200 individual files when I set the split to 10,000 lines which each only took 2-5 hours to BLAST on cluster (small job). So in future increase this split to 100,000 or so and run BLAST jobs set to medium partition on each fasta file.
+
+
 
 
                                              
