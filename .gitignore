@@ -33,6 +33,10 @@ vignettes/*.pdf
 
 # Temporary files created by R markdown
 *.utf8.md
+
+# Ignore the data directory
+Seal_MinION_analysis
+
 *.knit.md
 
 # R Environment Variables
@@ -44,3 +48,9 @@ vignettes/*.pdf
 
 #Ignore fast5 files
 *.fast5
+
+#Ignore output files
+out.txt
+
+# Ignore backup files
+*.bak

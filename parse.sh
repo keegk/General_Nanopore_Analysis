@@ -5,7 +5,6 @@
 #SBATCH --partition=long
 
 source activate R_env
-#Navigate to location of R script
-cd /mnt/shared/scratch/kkeegan/personal/Seal_MinION/R/
-  
-Rscript parse.R
+
+Rscript parse.R /home/nschurch/projects/jhi/bioss/kkeegan_onttestdata/Seal_MinION_analysis/concatenated_blast.medium.txt.gz out.txt 90 1E-12 5 200
+
