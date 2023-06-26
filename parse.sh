@@ -6,5 +6,5 @@
 
 source activate R_env
 
-Rscript parse.R /home/nschurch/projects/jhi/bioss/kkeegan_onttestdata/Seal_MinION_analysis/concatenated_blast.medium.txt.gz out.txt 90 1E-12 5 200
+Rscript parse.R /home/nschurch/projects/jhi/bioss/kkeegan_onttestdata/Seal_MinION_analysis/concatenated_blast.medplus.txt.gz out.txt 90 1E-12 5 200
 
