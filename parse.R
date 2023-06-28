@@ -74,17 +74,39 @@ gap.thresh = 5, mismatch.thresh = 200){
 	column.names <- c()
 	n.hits <- NA
 	out.hits <- NA
-	nreads <- 0
-	nread_hits <- 0
-	read_inc <- 0
+	nreads <- 0 # counter to count the total number of reads we parse.
+	nread_hits <- 0 # counter to count the number of reads with BLAST hits.
+	read_inc <- 0 # counter to count the number of reads we have parsed within a reporting block.
+	current_read <- NA # the current read id
 	
 	inc_time <- Sys.time()
-	# loop through the file reading a hit a line at the time looing for hits
+	# loop through the file reading a hit a line at the time looking for hits
 	while(length(aline <- readLines(con, n = 1)) >0 ){
 		
 		# record the blast version, but only do this once for the first read
 		if(startsWith(aline, "# BLASTN") & is.na(blast.ver)){
 			blast.ver <- strsplit(aline, split=" ")[[1]][3]
+		}
+		
+		if(startsWith(aline, "# Query")){
+			current_read <- strsplit(aline, split=" ")[[1]][3]
+			
+			# increment the counters
+			read_inc <- read_inc + 1
+			nreads <- nreads + 1
+			
+			# log the read name and which read we are on
+			#print(sprintf("parsing read %i: %s", nreads, current_read))
+			
+			# log total reporting blocks and runtime
+			if (read_inc==100){
+				runtime <- Sys.time() - inc_time
+				print(sprintf("Parsed %i reads in %.2f %s.",
+							  read_inc, runtime,
+							  attr(runtime, "units")))
+				inc_time <- Sys.time()
+				read_inc <- 0
+			}
 		}
 		
 		# get the column names for the blast output.
@@ -101,7 +123,6 @@ gap.thresh = 5, mismatch.thresh = 200){
 		# get the number of matching hits for this read, read them,
 		# filter them, and write out the results
 		line.match <- str_match(aline, "# ([0-9]+) hits found")
-		read_inc <- read_inc+1
 		if (!is.na(line.match[1][1])){
 			n.hits <- as.integer(line.match[1,2])
 			if (n.hits > 0) {
@@ -111,9 +132,6 @@ gap.thresh = 5, mismatch.thresh = 200){
 				hit.lines <- readLines(con, n = n.hits)
 				hit.lines <- as.data.frame(t(data.frame(strsplit(hit.lines, split="\t"))))
 				hit.lines <- data.frame(hit.lines, row.names=NULL)
-
-				# log the read name and which read we are on
-				#print(sprintf("parsing read %i: %s", nreads, hit.lines[1,2]))
 				
 				# ensure appropriate columns are numeric and that the
 				# column names are correct
@@ -138,15 +156,6 @@ gap.thresh = 5, mismatch.thresh = 200){
 							col.names = FALSE)
 				}
 			}
-		}
-		nreads <- nreads + 1 # counter to count the number of reads we parse.
-		if (read_inc==10000){
-			runtime <- Sys.time() - inc_time
-			print(sprintf("Parsed %i reads in %.2f %s.",
-						  read_inc, runtime,
-						  attr(runtime, "units")))
-			inc_time <- Sys.time()
-			read_inc <- 0
 		}
 	}
 
