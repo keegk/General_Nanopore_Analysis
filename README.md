@@ -74,7 +74,7 @@ Once I had run all the small BLAST jobs ~200 times (I had about 200 individual f
 
 **Backup of raw compressed data (fast5) straight off MinION:** /mnt/shared/projects/jhi/bioss/kkeegan_onttestdata/Seal_MinION_backup/fast5_untouched
 
-**Basecalled, compressed data using fast accuracy Guppy v6.0.1:** /mnt/shared/projects/jhi/bioss/kkeegan_onttestdata/Seal_MinION_analysis/Basecalling_and_fastq/Rebasecalled_jan2023.tar.gz
+**Basecalled, compressed data using fast accuracy Guppy v6.0.1:** /mnt/shared/projects/jhi/bioss/kkeegan_onttestdata/Seal_MinION_analysis/Basecalling_and_fastq/Rebasecalled_jan2023.tar.gz. Within each numbered directory, you will find a fast5 pass subdirectory and also a fastq pass subdirectory.
 
 **Post-basecalled data including raw fasta files, raw blast files, concatenated fasta and concatenated blast files**
 1) The fatsa file that was used as input for the seal BLAST run is: /mnt/shared/projects/jhi/bioss/kkeegan_onttestdata/Seal_MinION_analysis/Dataset_post_basecalling/fasta_split/cleaned_fasta.fasta. It was first split into many files each containing 5,000 reads (/mnt/shared/projects/jhi/bioss/kkeegan_onttestdata/Seal_MinION_analysis/Dataset_post_basecalling/fasta_split) and each fasta file was run through the blast7.sh script (BLAST database used is NCBI  database on cluster).
