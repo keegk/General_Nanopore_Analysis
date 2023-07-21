@@ -68,4 +68,17 @@ The blast script I used is called blast7.sh (the 7 just referes to the 7th versi
 
 Once I had run all the small BLAST jobs ~200 times (I had about 200 individual fasta files from my fasta_split.sh script above) I then wanted to concatenate these all back into one large blast text file and also compress this for storage. To do this I wrote the script concat.blast.sh which uses a for loop to find any .txt files, concatenates them into one text file and the using pigz (as recommended by the cluster help page) to compress this file. Compressed blast text reulst file is still approx 25Gb in size. I can then use this in R to pick out most common species from seal samples etc. and further downstream analsysis.
 
-                                             
+**Location of files on cluster**
+
+*Projects section (shared between Karen and Nick):*
+
+**Backup of raw compressed data (fast5) straight off MinION:** /mnt/shared/projects/jhi/bioss/kkeegan_onttestdata/Seal_MinION_backup/fast5_untouched
+
+**Basecalled, compressed data using fast accuracy Guppy v6.0.1:** /mnt/shared/projects/jhi/bioss/kkeegan_onttestdata/Seal_MinION_analysis/Basecalling_and_fastq/Rebasecalled_jan2023.tar.gz
+
+**Post-basecalled data including raw fasta files, raw blast files, concatenated fasta and concatenated blast files**
+1) The fatsa file that was used as input for the seal BLAST run is: /mnt/shared/projects/jhi/bioss/kkeegan_onttestdata/Seal_MinION_analysis/Dataset_post_basecalling/fasta_split/cleaned_fasta.fasta. It was first split into many files each containing 5,000 reads (/mnt/shared/projects/jhi/bioss/kkeegan_onttestdata/Seal_MinION_analysis/Dataset_post_basecalling/fasta_split) and each fasta file was run through the blast7.sh script (BLAST database used is NCBI  database on cluster).
+2) Blast text files produced from this are compressed and located here: /mnt/shared/projects/jhi/bioss/kkeegan_onttestdata/Seal_MinION_analysis/Dataset_post_basecalling/raw_blast_files
+3) The final concatenated and compressed NCBI blast file, having removed any duplicate reads, is called concatenated_blast_third_run.txt.gz and is loacated here: /mnt/shared/projects/jhi/bioss/kkeegan_onttestdata/Seal_MinION_analysis/Dataset_post_basecalling/concatenated_compressed_third_run
+   Note: The number of reads in concatenated_blast_third_run.txt.gz and cleaned_fasta.fasta (the input file used for BLAST script) are both 984,943 reads respectively. 
+
