@@ -1,0 +1,75 @@
+--
+title: "Investigating a Nanopore sequencing summary file to generate read QC data"
+output: html_notebook
+---
+  
+  I load tidyverse at the start of this notebook, as it is a convenient package that includes tidyr, ggplot2, dplyramong other useful packages.
+
+```{r set up}
+#install.packages("tidyverse")
+library(tidyverse)
+
+```
+
+```{r}
+sequencing_summary <- read_delim ("C:/Users/keegk/OneDrive - moredungroup/Karen Keegan/Nanopore/SQKRBK004/Extraction_experiment_run_22.2.23/Rebasecalling/Rebasecalled_trimmed_super_accuracy/barcode_6/sequencing_summary.txt")
+
+```
+  
+  **Step One: What are the read length and q score distributions?**
+  
+```{r sequence lengths}
+
+#Total number of reads
+no_reads <- nrow(sequencing_summary) # total number of reads
+No_reads <- formatC(no_reads, format = "fg", digits = 2, big.mark = ",")
+
+# percentage of reads that passed q score:
+passed_reads <- subset(sequencing_summary, passes_filtering == "TRUE")
+passed <- nrow(passed_reads)
+percentage <- passed/no_reads# this is my passed reads over my total reads
+#Percentage <- format(round(percentage, 2)) # percentage of reads that passed
+Percentage <- label_percent()(percentage)
+print(paste(Percentage, "is the percentage of reads that passed"))
+
+mean_read <- mean(sequencing_summary$sequence_length_template)#average read length
+Mean_read = format(round(mean_read, 1))
+Mean_read <- formatC(mean_read, format = "fg", digits = 2, big.mark = ",")
+
+max_read <- max(sequencing_summary$sequence_length_template) #highest read length
+Max_read <- formatC(max_read, format = "fg", digits = 2, big.mark = ",")
+
+median <- median(sequencing_summary$sequence_length_template) #median (N50 read no.)
+Median = formatC(median, format = "fg", digits = 2, big.mark = ",")
+
+no_bases <- sum(sequencing_summary$sequence_length_template)#total number of bases per extraction method
+No_bases <- formatC(no_bases, format = "fg", digits = 2, big.mark = ",")
+
+mean_q_score <- mean(sequencing_summary$mean_qscore_template) #mean q score
+Mean_q_score = formatC(mean_q_score, format = "fg", digits = 2, big.mark = ",")
+
+
+####beginning histogram###
+
+nbins <- floor(sqrt(nrow(sequencing_summary)))
+
+sequencing_summary %>%
+  ggplot(aes(x = sequence_length_template)) +
+  geom_histogram (bins =nbins, fill = 'blue') +
+  geom_text(aes(25000, 8000, label=paste("Total number of reads = ", No_reads))) +
+  geom_text(aes(25000, 7600, label=paste("Total number of bases = ", No_bases))) +
+ geom_text(aes(25000, 7200, label=paste("Mean read length = ", Mean_read))) +
+  geom_text(aes(25000, 6800, label=paste("Max read length = ", Max_read))) +
+  geom_text(aes(25000, 6400, label=paste("N50 = ", Median))) +
+  geom_text(aes(25000, 6000, label=paste("Mean Q score = ", Mean_q_score))) +
+  geom_text(aes(25000, 5600, label=paste("Percentage of reads that passed = ", Percentage))) +
+      labs(x = "Read length (bp)", y = "count")
+
+sequencing_summary %>%
+  ggplot(aes(x=sequence_length_template)) +
+  geom_histogram(bins=nbins, fill = 'blue') +
+  coord_cartesian(ylim = c(0, 100)) +
+  labs(x = "read length (kb)", y = "count")
+
+
+```
