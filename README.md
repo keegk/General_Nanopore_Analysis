@@ -26,7 +26,7 @@ Filtering of taxonomic hits in BLASTn scripts:
 BLASTn text outputs:
 
 
-<img width="671" height="851" alt="image" src="https://github.com/user-attachments/assets/b380466d-2695-48a2-9544-107401162cb0" />
+<img width="670" height="845" alt="image" src="https://github.com/user-attachments/assets/b2a242e3-a118-436f-9a01-dccc07171d60" />
 
 
 
