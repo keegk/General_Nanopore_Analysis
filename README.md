@@ -28,6 +28,15 @@ BLASTn text outputs:
 
 <img width="670" height="845" alt="image" src="https://github.com/user-attachments/assets/b2a242e3-a118-436f-9a01-dccc07171d60" />
 
+6) Concatenating multiple BLASTn text files generated per sample
+      - concat_blast_text_files.sh
+        
+7) Parsing data into R
+      - parse_into_R.sh
+      - parsefilter_blasttable.R
+
+8) Adding the full taxonomy of reads (from Superkingdom/Domain) in R
+   
 
 
       
