@@ -26,24 +26,8 @@ Filtering of taxonomic hits in BLASTn scripts:
 BLASTn text outputs:
 
 
-Variable name	Definition
-sscinames	Scientific name (the scientific name of the subject the query has aligned to)
-qacc	The query (read) NCBI accession number
-sacc	The subject (read) NCBI accession number
-pident	Percent identity of the alignment
-length	Length of the alignment
-mismatch	The number of mismatches in the alignment
-gaps	The number of gaps in the alignment (inclusive of gap openings)
-gapopen	The number of gap openings in the alignment
-slen	The length of the subject read,
-qlen	The length of the query read (before alignment)
-qstart	The start location of the alignment on the query read
-qend	The end location of the alignment on the query read
-sstart	The start location of the alignment on the subject read
-send	The end location of the alignment on the subject read
-evalue	E-value
-bitscore	Bitscore
-staxids	Subject taxonomic ID
+<img width="671" height="851" alt="image" src="https://github.com/user-attachments/assets/b380466d-2695-48a2-9544-107401162cb0" />
+
 
 
       
