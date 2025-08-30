@@ -4,12 +4,12 @@ Outlined below are the steps and scripts in the Nanopore shotgun metagenomic pip
 
 1) Basecalling. See individual results chapter repositories for the different basecalling modular scripts used for each. The outputs of basecalling scripts convert raw FAST5/POD5 Nanopore files into FASTQ files.
 
-Basecalled with Guupy:
+**Basecalled with Guppy**:
 2.1) Concatenating and compressing FASTQ files generated from Guppy basecalling
       -cat_fastq.sh (searches within each of the FAST5/POD5 directories for FASTQ files and concatentates these into a single FASTQ file)
 
-Basecalled with Dorado:
-2.2) Demultiplex the bam filed generated from Dorado basecalling with dorado_demux.sh
+**Basecalled with Dorado**:
+2.2) Demultiplex the bam filed generated from Dorado basecalling with dorado_demux_bam.sh
 2.3) Quality control: generate summary sequencing files from bam files with dorado_bam_seq_sum.sh
 2.4) Quality control: Nanoplot on each summary sequencing file with Nanoplot_guppy_gpu.sh 
 2.5) Using samtools to convert bam files to FASTQ files with bam2fq.sh
