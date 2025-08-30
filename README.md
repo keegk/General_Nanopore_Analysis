@@ -6,7 +6,7 @@ Outlined below are the steps and scripts in the Nanopore shotgun metagenomic pip
 
 Basecalled with Guupy:
 2.1) Concatenating and compressing FASTQ files generated from Guppy basecalling
-      -compressing_passed_fastq.sh (searches within each of the FAST5/POD5 directories for FASTQ files and concatentates these into a single FASTQ file)
+      -cat_fastq.sh (searches within each of the FAST5/POD5 directories for FASTQ files and concatentates these into a single FASTQ file)
 
 Basecalled with Dorado:
 2.2) Demultiplex the bam filed generated from Dorado basecalling with dorado_demux.sh
