@@ -54,6 +54,8 @@ BLASTn text outputs:
 8) Adding the full taxonomy of reads (from superkingdom/domain to species) in R and further filtering of these BLASTn results with full taxonomy
    -Filtering_1_Assinging_Taxonomy.Rmd
    -Filtering_2_Additional_Taxonomy_Filtering.Rmd
-
+   
+10) AMR gene analysis - making the AMR databases on a HPCC
+    - For CARD, using script making_CARD_seq_db.sh
 
       
