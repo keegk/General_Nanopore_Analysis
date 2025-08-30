@@ -11,7 +11,7 @@ Outlined below are the steps and scripts in the Nanopore shotgun metagenomic pip
 **Basecalled with Dorado**:
 2.2) Demultiplex the bam filed generated from Dorado basecalling with dorado_demux_bam.sh
 2.3) Quality control: generate summary sequencing files from bam files with dorado_bam_seq_sum.sh
-2.4) Quality control: Nanoplot on each summary sequencing file with Nanoplot_guppy_gpu.sh 
+2.4) Quality control: Nanoplot on each summary sequencing file with Nanoplot.sh 
 2.5) Using samtools to convert bam files to FASTQ files with bam2fq.sh
 
 3) Tidying the FASTQ files
