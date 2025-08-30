@@ -35,8 +35,9 @@ BLASTn text outputs:
       - parse_into_R.sh
       - parsefilter_blasttable.R
 
-8) Adding the full taxonomy of reads (from superkingdom/domain to species) in R
-   
+8) Adding the full taxonomy of reads (from superkingdom/domain to species) in R and further filtering of these BLASTn results with full taxonomy
+   -Filtering_1_Assinging_Taxonomy.Rmd
+   -Filtering_2_Additional_Taxonomy_Filtering.Rmd
 
 
       
