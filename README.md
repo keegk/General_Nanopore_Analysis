@@ -56,6 +56,7 @@ BLASTn text outputs:
    -Filtering_2_Additional_Taxonomy_Filtering.Rmd
    
 10) AMR gene analysis - making the AMR databases on a HPCC
-    - For CARD, using script making_CARD_seq_db.sh
+    - For CARD nucleotide database, using script making_CARD_seq_db.sh
+    - For CARD protein database, using script making_CARD_seq_db_updated.sh
 
       
