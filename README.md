@@ -1,6 +1,6 @@
 # General_Nanopore_Analysis
 
-Outlined below are the steps and scripts in the Nanopore shotgun metagenomic pipeline ("The Nanopore pipelin"):
+Outlined below are the steps and scripts in the Nanopore shotgun metagenomic pipeline ("The Nanopore pipeline"):
 
 1) Basecalling. See individual results chapter repositories for the different basecalling modular scripts used for each. The outputs of basecalling scripts convert raw FAST5/POD5 Nanopore files into FASTQ files.
 
