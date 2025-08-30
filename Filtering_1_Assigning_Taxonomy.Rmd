@@ -1,0 +1,517 @@
+---
+title: "Step 1 filtering - assigning taxonomy
+output: html_notebook
+
+Below is an example with concatenated BLASTn text files of 24 barcodes (one concatenated file per barcode) from a Nanopore run (SQK-RBK114) 
+---
+```{r setup}
+#install.packages("tidyverse")
+#install.packages("ggplot2")
+library(tidyverse)
+library(ggplot2)
+require("knitr")
+## setting working directory
+#opts_knit$set(root.dir = "C:/Users/keegk/OneDrive - moredungroup/Karen Keegan/Github/Gut_Microbiome/")
+getwd()
+```
+
+
+#Load in barcodes. 
+```{r}
+
+#-full run, superbasecalled dorado on hpcc
+
+ncbi_bar1 <- read.table("parsed_gm3_cat_bar1_blast.txt", sep=",",  header = TRUE) #reading in the ncbi blast results
+
+ncbi_bar1 <-  as.data.frame(ncbi_bar1)
+ncbi_bar1 <- ncbi_bar1 %>% rename(species=subject.sci.names)
+
+
+
+#ncbi_bar1 <- cbind(ncbi_bar1, barcode)
+
+
+#ncbi_bar1$barcode <- barcode #this adds a column 'barcode to the dataset and because this file is just barcode1 we have populated this column with barcode 1. will repeat for all barcode text files and then when we merge these, we can separate out results for each barcode within this one merged text file
+
+ncbi_bar1$barcode <- c("barcode1") #for some reason if i dont put the ncbi_bar1 in front of barcode, it doesnt add the barcode column, even though it does it for literally every other barcode
+save(ncbi_bar1, file = "ncbi_bar1") #saving the file for quick reloading later on
+load("ncbi_bar1")
+
+#barcode2-full run, superbasecalled dorado on hpcc
+
+
+ncbi_bar2 <- read.table("parsed_gm3_cat_bar2_blast.txt", sep=",",  header = TRUE) #reading in the ncbi blast results..this is the latest version, with increased memory completed on 10.8.24..fully complete blast results(no out of memory error)
+ncbi_bar2 <-  as.data.frame(ncbi_bar2)
+
+ncbi_bar2 <- ncbi_bar2 %>% rename(species=subject.sci.names)
+
+barcode <- c("barcode2")
+
+ncbi_bar2$barcode <- barcode
+
+
+save(ncbi_bar2, file = "ncbi_bar2") #saving the file for quick reloading later on
+load("ncbi_bar2")
+
+#Barcode 3-full run, superbasecalled dorado on hpcc
+
+ncbi_bar3 <- read.table("parsed_gm3_cat_bar3_blast.txt", sep=",",  header = TRUE) #reading in the ncbi blast results
+
+ncbi_bar3 <-  as.data.frame(ncbi_bar3)
+ncbi_bar3 <- ncbi_bar3 %>% rename(species=subject.sci.names)
+
+barcode <- c("barcode3")
+
+ncbi_bar3$barcode <- barcode
+
+
+save(ncbi_bar3, file = "ncbi_bar3") #saving the file for quick reloading later on
+load("ncbi_bar3")
+
+#Barcode 4 -full run, superbasecalled dorado on hpcc
+
+ncbi_bar4 <- read.table("parsed_gm3_cat_bar4_blast.txt", sep=",",  header = TRUE) #reading in the ncbi blast results
+ncbi_bar4 <-  as.data.frame(ncbi_bar4)
+
+ncbi_bar4 <- ncbi_bar4 %>% rename(species=subject.sci.names)
+
+barcode <- c("barcode4")
+
+ncbi_bar4$barcode <- barcode
+ncbi_bar4$subject.tax.ids <- as.character(ncbi_bar4$subject.tax.ids)
+
+
+save(ncbi_bar4, file = "ncbi_bar4") #saving the file for quick reloading later on
+load("ncbi_bar4")
+
+#Barcode 5 -full run, superbasecalled dorado on hpcc
+
+ncbi_bar5 <- read.table("parsed_gm3_cat_bar5_blast.txt", sep=",",  header = TRUE) #reading in the ncbi blast results
+
+ncbi_bar5 <-  as.data.frame(ncbi_bar5)
+ncbi_bar5 <- ncbi_bar5 %>% rename(species=subject.sci.names)
+
+barcode <- c("barcode5")
+
+
+ncbi_bar5$barcode <- barcode
+
+save(ncbi_bar5, file = "ncbi_bar5") #saving the file for quick reloading later on
+load("ncbi_bar5")
+
+#Barcode 6 --full run, superbasecalled dorado on hpcc
+
+ncbi_bar6 <- read.table("parsed_gm3_cat_bar6_blast.txt", sep=",",  header = TRUE) #reading in the ncbi blast results
+ncbi_bar6 <-  as.data.frame(ncbi_bar6)
+
+ncbi_bar6 <- ncbi_bar6 %>% rename(species=subject.sci.names)
+
+barcode <- c("barcode6")
+
+ncbi_bar6$barcode <- barcode
+
+save(ncbi_bar6, file = "ncbi_bar6") #saving the file for quick reloading later on
+load("ncbi_bar6")
+
+#Barcode 7 -full run, superbasecalled dorado on hpcc
+
+
+ncbi_bar7 <- read.table("parsed_gm3_cat_bar7_blast.txt", sep=",",  header = TRUE) #reading in the ncbi blast results
+#reading in the ncbi blast results..this is the latest version, with increased memory completed on 10.8.24..fully complete blast results(no out of memory error)
+ncbi_bar7 <-  as.data.frame(ncbi_bar7)
+ncbi_bar7 <- ncbi_bar7 %>% rename(species=subject.sci.names)
+
+barcode <- c("barcode7")
+
+ncbi_bar7$barcode <- barcode
+
+
+save(ncbi_bar7, file = "ncbi_bar7") #saving the file for quick reloading later on
+load("ncbi_bar7")
+
+#Barcode 8--full run, superbasecalled dorado on hpcc
+
+ncbi_bar8 <- read.table("parsed_gm3_cat_bar8_blast.txt", sep=",",  header = TRUE) #reading in the ncbi blast results
+ncbi_bar8 <-  as.data.frame(ncbi_bar8)
+
+ncbi_bar8 <- ncbi_bar8 %>% rename(species=subject.sci.names)
+
+barcode <- c("barcode8")
+
+ncbi_bar8$barcode <- barcode
+
+save(ncbi_bar8, file = "ncbi_bar8") #saving the file for quick reloading later on
+load("ncbi_bar8")
+
+#Barcode 9 -full run, superbasecalled dorado on hpcc
+
+ncbi_bar9  <- read.table("parsed_gm3_cat_bar9_blast.txt", sep=",",  header = TRUE) #reading in the ncbi blast results
+
+ncbi_bar9 <-  as.data.frame(ncbi_bar9)
+ncbi_bar9 <- ncbi_bar9  %>% rename(species=subject.sci.names)
+
+barcode <- c("barcode9")
+
+
+ncbi_bar9$barcode <- barcode
+
+save(ncbi_bar9 , file = "ncbi_bar9") #saving the file for quick reloading later on
+load("ncbi_bar9")
+
+#Barcode 10 -full run, superbasecalled dorado on hpcc
+
+ncbi_bar10 <- read.table("parsed_gm3_cat_bar10_blast.txt", sep=",",  header = TRUE) #reading in the ncbi blast results
+ncbi_bar10 <-  as.data.frame(ncbi_bar10)
+
+ncbi_bar10 <- ncbi_bar10 %>% rename(species=subject.sci.names)
+
+barcode <- c("barcode10")
+
+ncbi_bar10$barcode <- barcode
+
+ncbi_bar10$subject.tax.ids <- as.character(ncbi_bar10$subject.tax.ids)
+
+save(ncbi_bar10, file = "ncbi_bar10") #saving the file for quick reloading later on
+load("ncbi_bar10")
+
+#Barcode 11 -full run, superbasecalled dorado on hpcc
+
+ncbi_bar11 <- read.table("parsed_gm3_cat_bar11_blast.txt", sep=",",  header = TRUE) #reading in the ncbi blast results
+
+ncbi_bar11 <-  as.data.frame(ncbi_bar11)
+ncbi_bar11 <- ncbi_bar11 %>% rename(species=subject.sci.names)
+
+barcode <- c("barcode11")
+
+ncbi_bar11$barcode <- barcode
+
+
+
+save(ncbi_bar11, file = "ncbi_bar11") #saving the file for quick reloading later on
+load("ncbi_bar11")
+
+#Barcode 12 -full run, superbasecalled dorado on hpcc
+
+ncbi_bar12 <- read.table("parsed_gm3_cat_bar12_blast.txt", sep=",",  header = TRUE) #reading in the ncbi blast results
+
+ncbi_bar12 <-  as.data.frame(ncbi_bar12)
+ncbi_bar12 <- ncbi_bar12%>% rename(species=subject.sci.names)
+
+barcode <- c("barcode12")
+
+ncbi_bar12$barcode <- barcode
+
+
+save(ncbi_bar12, file = "ncbi_bar12") #saving the file for quick reloading later on
+load("ncbi_bar12")
+
+#Barcode 13 -full run, superbasecalled dorado on hpcc
+
+ncbi_bar13 <- read.table("parsed_gm3_cat_bar13_blast.txt", sep=",",  header = TRUE) #reading in the ncbi blast results
+
+ncbi_bar13 <-  as.data.frame(ncbi_bar13)
+ncbi_bar13 <- ncbi_bar13 %>% rename(species=subject.sci.names)
+
+ncbi_bar13 <- ncbi_bar13 %>% 
+  mutate(across(subject.tax.ids, as.character)) #for some reason, in only barcode 13 , subject.tax.ids was an intger instead of a character like the rest. Originally tried as.character on this, but it turned it into a list instead of keeping it as a dataframe, so then i used mutate from dplyr to change it as a character and now the bind command at the end of this code block works
+
+barcode <- c("barcode13")
+
+ncbi_bar13$barcode <- barcode
+
+
+
+save(ncbi_bar13, file = "ncbi_bar13") #saving the file for quick reloading later on
+load("ncbi_bar13")
+
+#Barcode 14 -full run, superbasecalled dorado on hpcc
+
+ncbi_bar14 <- read.table("parsed_gm3_cat_bar14_blast.txt", sep=",",  header = TRUE) #reading in the ncbi blast results
+ncbi_bar14 <-  as.data.frame(ncbi_bar14)
+
+ncbi_bar14 <- ncbi_bar14 %>% rename(species=subject.sci.names)
+
+ncbi_bar14$subject.tax.ids <- as.character(ncbi_bar14$subject.tax.ids)
+
+barcode <- c("barcode14")
+
+ncbi_bar14$barcode <- barcode
+
+
+
+save(ncbi_bar14, file = "ncbi_bar14") #saving the file for quick reloading later on
+load("ncbi_bar14")
+
+#Barcode 15 -full run, superbasecalled dorado on hpcc
+
+ncbi_bar15 <- read.table("parsed_gm3_cat_bar15_blast.txt", sep=",",  header = TRUE) #reading in the ncbi blast results
+ncbi_bar15 <-  as.data.frame(ncbi_bar15)
+
+ncbi_bar15 <- ncbi_bar15 %>% rename(species=subject.sci.names)
+
+barcode <- c("barcode15")
+ncbi_bar15$subject.tax.ids <- as.character(ncbi_bar15$subject.tax.ids)
+
+ncbi_bar15$barcode <- barcode
+
+save(ncbi_bar15, file = "ncbi_bar15") #saving the file for quick reloading later on
+load("ncbi_bar15")
+
+#Barcode 16 -full run, superbasecalled dorado on hpcc
+
+ncbi_bar16 <- read.table("parsed_gm3_cat_bar16_blast.txt", sep=",",  header = TRUE) #reading in the ncbi blast results
+ncbi_bar16 <-  as.data.frame(ncbi_bar16)
+
+ncbi_bar16 <- ncbi_bar16 %>% rename(species=subject.sci.names)
+
+barcode <- c("barcode16")
+
+ncbi_bar16$barcode <- barcode
+ncbi_bar16$subject.tax.ids <- as.character(ncbi_bar16$subject.tax.ids)
+
+
+save(ncbi_bar16, file = "ncbi_bar16") #saving the file for quick reloading later on
+load("ncbi_bar16")
+
+#Barcode 17 -full run, superbasecalled dorado on hpcc
+
+ncbi_bar17 <- read.table("parsed_gm3_cat_bar17_blast.txt", sep=",",  header = TRUE) #reading in the ncbi blast results
+
+ncbi_bar17 <-  as.data.frame(ncbi_bar17)
+ncbi_bar17 <- ncbi_bar17%>% rename(species=subject.sci.names)
+
+ncbi_bar17$subject.tax.ids <- as.character(ncbi_bar17$subject.tax.ids)
+
+barcode <- c("barcode17")
+
+ncbi_bar17$barcode <- barcode
+
+
+
+save(ncbi_bar17, file = "ncbi_bar17") #saving the file for quick reloading later on
+load("ncbi_bar17")
+
+#Barcode 18 -full run, superbasecalled dorado on hpcc
+
+ncbi_bar18<- read.table("parsed_gm3_cat_bar18_blast.txt", sep=",",  header = TRUE) #reading in the ncbi blast results
+
+ncbi_bar18 <-  as.data.frame(ncbi_bar18)
+ncbi_bar18<- ncbi_bar18 %>% rename(species=subject.sci.names)
+
+barcode <- c("barcode18")
+
+ncbi_bar18$barcode <- barcode
+ncbi_bar18$subject.tax.ids <- as.character(ncbi_bar18$subject.tax.ids)
+
+save(ncbi_bar18, file = "ncbi_bar18") #saving the file for quick reloading later on
+load("ncbi_bar18")
+
+#Barcode 19 -full run, superbasecalled dorado on hpcc
+
+ncbi_bar19 <- read.table("parsed_gm3_cat_bar19_blast.txt", sep=",",  header = TRUE) #reading in the ncbi blast results
+ncbi_bar19 <-  as.data.frame(ncbi_bar19)
+
+ncbi_bar19<- ncbi_bar19 %>% rename(species=subject.sci.names)
+
+barcode <- c("barcode19")
+
+ncbi_bar19$barcode <- barcode
+
+
+ncbi_bar19$subject.tax.ids <- as.character(ncbi_bar19$subject.tax.ids)
+
+save(ncbi_bar19, file = "ncbi_bar19") #saving the file for quick reloading later on
+load("ncbi_bar19")
+
+
+#Im going to filter the reads here because bar 19 is really big and its slowing down everything else proceeding this chunk of code (these low reads would get filtered out at a later stage anyway)
+
+filtered_ncbi_bar19 <- ncbi_bar19 %>%
+          mutate(proportional_mismatches = mismatches/alignment.length) %>% # 7.11.24 adding this as i think gaps set at less than 5 is too harsh for longer reads
+                          filter(proportional_mismatches <= 0.1) #here i am saying that there can be up to and including 10% gaps in the alignment 
+                 
+
+#Barcode 20- -full run, superbasecalled dorado on hpcc
+
+ncbi_bar20 <- read.table("parsed_gm3_cat_bar20_blast.txt", sep=",",  header = TRUE) #reading in the ncbi blast results
+ncbi_bar20 <-  as.data.frame(ncbi_bar20)
+
+
+ncbi_bar20 <- ncbi_bar20 %>% rename(species=subject.sci.names)
+
+barcode <- c("barcode20")
+
+ncbi_bar20$barcode <- barcode
+ncbi_bar20$subject.tax.ids <- as.character(ncbi_bar20$subject.tax.ids)
+
+save(ncbi_bar20, file = "ncbi_bar20") #saving the file for quick reloading later on
+load("ncbi_bar20")
+
+#Barcode 21 -full run, superbasecalled dorado on hpcc
+
+ncbi_bar21 <- read.table("parsed_gm3_cat_bar21_blast.txt", sep=",",  header = TRUE) #reading in the ncbi blast results
+
+ncbi_bar21 <-  as.data.frame(ncbi_bar21)
+ncbi_bar21 <- ncbi_bar21 %>% rename(species=subject.sci.names)
+
+barcode <- c("barcode21")
+
+ncbi_bar21$barcode <- barcode
+
+
+
+save(ncbi_bar21, file = "ncbi_bar21") #saving the file for quick reloading later on
+load("ncbi_bar21")
+
+#Barcode 22-full run, superbasecalled dorado on hpcc
+
+
+ncbi_bar22 <- read.table("parsed_gm3_cat_bar22_blast.txt", sep=",",  header = TRUE) #reading in the ncbi blast results
+
+ncbi_bar22 <-  as.data.frame(ncbi_bar22)
+ncbi_bar22 <- ncbi_bar22 %>% rename(species=subject.sci.names)
+
+ncbi_bar22$subject.tax.ids <- as.character(ncbi_bar22$subject.tax.ids)
+
+barcode <- c("barcode22")
+
+ncbi_bar22$barcode <- barcode
+
+save(ncbi_bar22, file = "ncbi_bar22") #saving the file for quick reloading later on
+load("ncbi_bar22")
+
+#Barcode 23- -full run, superbasecalled dorado on hpcc
+
+
+ncbi_bar23 <- read.table("parsed_gm3_cat_bar23_blast.txt", sep=",",  header = TRUE) #reading in the ncbi blast results
+
+ncbi_bar23 <-  as.data.frame(ncbi_bar23)
+
+ncbi_bar23 <- ncbi_bar23 %>% rename(species=subject.sci.names)
+
+barcode <- c("barcode23")
+
+
+ncbi_bar23$barcode <- barcode
+
+ncbi_bar23$subject.tax.ids <- as.character(ncbi_bar23$subject.tax.ids)
+save(ncbi_bar23, file = "ncbi_bar23") #saving the file for quick reloading later on
+load("ncbi_bar23")
+
+#barcode24
+
+ncbi_bar24 <- read.table("parsed_gm3_cat_bar24_blast.txt", sep=",",  header = TRUE) #reading in the ncbi blast results
+
+ncbi_bar24 <-  as.data.frame(ncbi_bar24)
+
+ncbi_bar24<- ncbi_bar24 %>% rename(species=subject.sci.names)
+
+barcode <- c("barcode24")
+
+ncbi_bar24$barcode <- barcode
+save(ncbi_bar24, file = "ncbi_bar24") #saving the file for quick reloading later on
+load("ncbi_bar24")
+
+
+##above took 5 mins or so to run
+
+##concatenating the barcodes into one blast file:
+
+#bar 10 and 19 need to change subject.tax.id from integere to character to match opther barcodes
+
+gm3_blast <- bind_rows(ncbi_bar1,ncbi_bar2,ncbi_bar3,ncbi_bar4,ncbi_bar5,ncbi_bar6,ncbi_bar7,ncbi_bar8,ncbi_bar9,ncbi_bar10,ncbi_bar11,ncbi_bar12,ncbi_bar13,ncbi_bar14,ncbi_bar15,ncbi_bar16,ncbi_bar17,ncbi_bar18,ncbi_bar19,ncbi_bar20,ncbi_bar21,ncbi_bar22,ncbi_bar23,ncbi_bar24)
+
+gm3_blast <- save(gm3_blast, file = "gm3_blast")
+load("gm3_blast")   
+#time taken ~10 mins
+```
+
+
+Setting up a table with taxa info for the combined
+
+```{r}
+#install.packages("taxonomizr")
+library(taxonomizr)
+#packageVersion("taxonomizr")
+
+prepareDatabase(getAccessions = FALSE) # name is "nameNode.sqlite". I neede to let this code run again on 27.5.25 instead of using preexisting sqlite database (which i removed from this project) as theyve updated taxonomizr and as a result, get taxonomy now outputs domain instead of superkingdom, so i think the old sqlite didnt have domain (it was superkingdom) so domain was coming up with NA for every read - and I need to filter by bacteria later on so this wouldnt do!
+gm3_taxaID <- as.vector(gm3_blast$subject.tax.ids)
+gm3_taxa<-getTaxonomy(gm3_taxaID,sqlFile = "nameNode.sqlite", sep )
+
+gm3_taxa <- save(gm3_taxa, file = "gm3_taxa")
+load("gm3_taxa") 
+
+#time taken = 3mins
+```
+
+
+converting row names to column using rownames_to_column:
+```{r}
+gm3_taxa <- data.frame(gm3_taxa)
+gm3_taxa1<- tibble::rownames_to_column(gm3_taxa, var = "subject.tax.ids")
+
+gm3_taxa1 <- save(gm3_taxa1, file = "gm3_taxa1")
+load("gm3_taxa1")
+
+#time taken = ~10 mins
+
+```
+
+We need to remove the decimal points and NA values from the column in taxa
+
+```{r}
+gm3_taxa1$subject.tax.ids <- str_extract(gm3_taxa1$subject.tax.ids, "\\d+")
+#time taken = 30s
+```
+
+now I can merge these two tables using the column in common, subject.tax.ids. first i need to make the column values identical by sorting both columns from each table sequentially from low to high
+```{r}
+
+gm3_blast_sorted <- gm3_blast[order(gm3_blast$subject.tax.ids), ]
+nrow(gm3_blast_sorted )
+
+gm3_blast_sorted <- save(gm3_blast_sorted, file = "gm3_blast_sorted")
+
+load("gm3_blast_sorted")
+#blast_culturevsnan_distinct <- blast_culturevsnan_sorted
+#nrow(blast_culturevsnan_distinct)
+gm3_taxa_table_sorted <- gm3_taxa1[order(gm3_taxa1$subject.tax.ids), ]
+gm3_taxa_table_distinct <- distinct(gm3_taxa_table_sorted)
+
+gm3_taxa_table_distinct <- save(gm3_taxa_table_distinct, file = "gm3_taxa_table_distinct")
+
+load("gm3_taxa_table_distinct")
+
+#time taken = approx 20 mins
+```
+
+
+And finally merging both taxonomy table and blast table using left join..cleared the global env and memory before running the below code (reloaded datasets needed first):
+```{r}
+gm3_merged_with_taxa <- full_join(x = gm3_blast_sorted, y = gm3_taxa_table_distinct, by ="subject.tax.ids") 
+
+gm3_merged_with_taxa<- save(gm3_merged_with_taxa, file = "gm3_merged_with_taxa")
+load("gm3_merged_with_taxa")
+
+
+
+unclassified <- gm3_merged_with_taxa %>%
+                filter(barcode == "unclassified") #there are no unclassified reads in the blast results AND having looked through the sum seq files for each ogf the 24 barcodes in "detecting_unclassified_reads.Rmd" I also know there are no incorrectly assigned barcodes present, so i can skip the below antijoin code below (skipping it as i keep getting the error "Error: cannot allocate vector of size 1.2 Gb" so i cant execute it anyway (but i dont need to now))
+
+
+#removing unclassified barcode reads:
+
+#load("gm1_sequencing_summary_clean") #made in the R notebook detecting_unclassified_reads.Rmd
+
+#gm1_sequencing_summary_clean$query.acc <- gm1_sequencing_summary_clean$read_id #adds query.acc to the end of this dataset 
+
+##gm1_distinct_clean <- anti_join(gm1_merged_with_taxa,gm1_sequencing_summary_clean) #removing any reads that have a barcode score less than 60 or are unclassified - the dataset run2_sequencing_summary_reads_to_remove was created in the R notebook "sum_seq_metrics_model2025.Rmd)
+
+
+
+
+distinct(gm3_merged_with_taxa)
+
+gm3_distinct_clean <- save(gm3_merged_with_taxa, file = "gm3_distinct_clean")
+
+```
