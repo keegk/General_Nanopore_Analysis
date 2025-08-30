@@ -26,52 +26,6 @@ load("gm3_distinct_clean")
 
 ```{r}
 
-gm3_stringent_2025_clean <- gm3_merged_with_taxa %>%
-                mutate(proportional_gap_number = gaps/alignment.length) %>%# 7.11.24 adding this as i think gaps set at less than 5 is too harsh for longer reads 
-                mutate(proportional_mismatch_number = mismatches/alignment.length) %>% # 7.11.24 adding this as i think gaps set at less than 5 is too harsh for longer reads 
- # filter(gaps <= 5) %>% #and across the whole dataset, filter out any reads that have gaps more than 5 and
-               #filter(mismatches <= 200) %>% #mismatches more than 200
-              
-              filter(proportional_mismatch_number <= 0.1) %>%
-              filter(proportional_gap_number <= 0.1) %>% #here i am saying that there can be up to and including 10% gaps in the alignment 
-                          #l ine 428-433 is general filtering of the entire dataset
-               # filter(mismatches <= 200) %>%
-                mutate(alignment.prop = alignment.length/query.length)%>%
-                filter(alignment.prop >= 0.25) %>%
-                filter(query.length >= 500)%>%
-                filter(subject.length >= 100)#%>% #line 428-433 is general filtering of the entire dataset
-  
-
- gm3_stringent_2025_clean2 <- gm3_stringent_2025_clean %>% 
-               group_by (query.acc, subject.tax.ids) %>% # code from line 436-451 written with nick as the weighted approach 25.10.24
-            
-               mutate(evalue_nonzero = ifelse(evalue == 0, 1, evalue), 
-                      relative_evalue = ifelse(evalue == 0, 1, min(evalue_nonzero)/evalue_nonzero)) %>%
-              mutate(relative_alignment_length = alignment.length/max(alignment.length)) %>%
-              mutate(alignment_count = n()) %>% #taxon alignment count within a read 
-              
-              ungroup() %>%
-              group_by(query.acc) %>%
-             
-              mutate(relative_count = alignment_count/n()) %>% #proportion of read alignments to a taxon
-               mutate(weight_score = relative_evalue*relative_alignment_length*(percent.identity/100)) %>%
-             filter(weight_score == max(weight_score)) %>%
-              filter(relative_count == max(relative_count)) %>%
-              slice_sample(n=1) %>%
-              ungroup()
-
-save(gm3_stringent_2025_clean2, file = "gm3_stringent_2025_clean2") #saving the file for quick reloading later on
-
-load("gm3_stringent_2025_clean2")
-
-#time took = 5 mins, ran fine the first time
-```
-
-#jUNE 2025 - redoing the above filter to remove any reads that have species.y as NA. Whats happening is that identical reads are only assigned taxonomy to one of the reads, while the other ones is blank for superkingdom to species.y but does have a species.x name. Then when the reads get randomly chosen at the weighted filtering step (because they are exactly the same) sometimes the read that is retained is the one without any higher taxonomy info which means that if youre looking for species in your samples, searching the species.x or subject tax ID's will work, but the species.y column wont. It also means any phyla or genus level figures etc are msissing data
-
-
-```{r}
-
 
 gm3_stringent_2025_clean <- gm3_merged_with_taxa %>%
                 mutate(proportional_gap_number = gaps/alignment.length) %>%# 7.11.24 adding this as i think gaps set at less than 5 is too harsh for longer reads 
