@@ -9,10 +9,15 @@ Outlined below are the steps and scripts in the Nanopore shotgun metagenomic pip
       -cat_fastq.sh (searches within each of the FAST5/POD5 directories for FASTQ files and concatentates these into a single FASTQ file)
 
 **Basecalled with Dorado**:
+
 2.2) Demultiplex the bam filed generated from Dorado basecalling with dorado_demux_bam.sh
+
 2.3) Quality control: generate summary sequencing files from bam files with dorado_bam_seq_sum.sh
+
 2.4) Quality control: Nanoplot on each summary sequencing file with Nanoplot.sh 
+
 2.5) Using samtools to convert bam files to FASTQ files with bam2fq.sh
+
 
 3) Tidying the FASTQ files
       -tool SeqKit is used to remove duplicate reads and then Seqtk is used to convert these tidied FASTQ files into fasta files for BLASTn analysis. Note there are no bash scripts for these tools, they can be used on an interactive job on the HPC. fOR SeqKit: 'seqkit rmdup concat.fastq -s -o clean.fastq'. For Seqtk:'seqkit rmdup concat.fastq -n -o cleanbyID2.fastq.'
@@ -21,7 +26,7 @@ Outlined below are the steps and scripts in the Nanopore shotgun metagenomic pip
       - Using a custom R script (read_QC_in_R.Rmd)
       - Nanoplot with Guppy data: Nanoplot_guppy.sh; Nanoplot with Dorado data: dorado_bam_seq_sum.sh and Nanoplot.sh
         
-5) Taxa identification
+5) BLASTn
    
  Both scripts below set the same BLASTn parameters and output the same information in text files, the only difference is one uses single FASTA files as input and the second takes advantage of "array" jobs on a HPC, which allows users to input and process multiple files (in this case FASTA) within a single script:
 
