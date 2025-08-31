@@ -1,0 +1,140 @@
+---
+title: "Merging_taxa_AMR_RGI_MGE"
+output: html_notebook
+---
+```{r setup}
+
+library(dplyr)
+library(stringr) #for str_extract function
+library(jsonlite) #for reading in json file
+library(tidyr) #for use with replace_na
+
+packageVersion("dplyr")
+```
+
+#load in taxa results (stringent)
+
+load in all the taxonomy results from each run, merging them into one file
+```{r}
+load("cvn1_stringent_2025_clean4") #only barcodes 2,5  and 8 from this run
+load("cvn2_stringent_2025_clean4")#only barcodes barcode3","barcode4","barcode5","barcode6","barcode7","barcode8","barcode9","barcode22" kept
+load("cvn3_stringent_2025_clean4") #only barcodes "barcode1","barcode2","barcode10" kept
+load("stringent_2025_gm1")
+load("stringent_2025_gm2")
+load("stringent_2025_gm4") #only barcodes 5-20 kept from gm3 run
+
+merged_all_runs <- bind_rows(cvn1_stringent_2025_clean4,cvn2_stringent_2025_clean4,cvn3_stringent_2025_clean4,stringent_2025_gm1,stringent_2025_gm2,stringent_2025_gm4)
+
+save(merged_all_runs, file = "merged_all_runs") #saving the file for quick reloading later on
+
+load("merged_all_runs")
+
+all_runs_no_controls <- merged_all_runs %>%
+                        filter(!sample_name %in% c("HMW_POS_CTRL", "LOG_DNA_POS_CTRL","LOG_POS_CTRL", "16S_POS_CTRL", "NEG_CTRL", "NEG_EXT_CTRL"))
+
+save(all_runs_no_controls, file = "all_runs_no_controls") #saving the file for quick reloading later on
+
+load("all_runs_no_controls")
+```
+
+Load in CARD RGI results:
+
+```{r}
+gm_RGI <- read.delim(file = "gut_microbiome_all_RGI.txt", sep="\t",  header = TRUE)
+
+
+gm_RGI_ph_hits <- gm_RGI %>%
+           filter(Model_type == "protein homolog model")  #making sure I only get protein homolog model hits, I didnt set this in blastn, as all my results were NA for model type, so they would have been lost from the dataset if I had set the model type)
+            #distinct(Contig, .keep_all=TRUE) 
+
+
+#so that I can merge the taxa/mge data, I need to remove the underscores after reads in the Contig column and then rename this query.acc:
+
+gm_RGI_ph_hits  <- gm_RGI_ph_hits  %>%
+          mutate(query.acc = str_extract(Contig,"^.*(?=(_))")) #retain only the numbers before the underscore in Contig column
+
+```
+
+```{r}
+
+#merge the rgi data with taxa info
+
+gm_RGI_ph_hits_taxa <- left_join(gm_RGI_ph_hits, all_runs_no_controls, by = "query.acc", relationship = "many-to-many")
+
+save(gm_RGI_ph_hits_taxa, file = "gm_RGI_ph_hits_taxa") #saving the file for quick reloading later on
+load("gm_RGI_ph_hits_taxa")
+```
+
+load in mge
+
+```{r}
+
+#load in mge
+
+
+   
+gm_mge <- read.csv(file = "gut_microbiome_all_mge.csv",  header = TRUE)
+
+#change the name of Specific.Contig to query.acc so that I can merge the amr_filters_CARD and the grey_seal_mge datasets together using this linker column, which is the query name, but just with different headings on both datasets:
+
+gm_mge$query.acc <- gm_mge$Specific.Contig
+
+
+#merge the mge results
+
+gm_RGI_ph_hits_taxa_mge <- left_join(gm_RGI_ph_hits_taxa, gm_mge, by = "query.acc", relationship = "many-to-many")
+
+save(gm_RGI_ph_hits_taxa_mge, file = "gm_RGI_ph_hits_taxa_mge") #saving the file for quick reloading later on
+load("gm_RGI_ph_hits_taxa_mge") ##this is the dataset that has EVERYTHING - The blastn amr gene hit, if its associated awith a bacterial spp from the sample and whether this amr gene is a mge
+
+nrow(gm_RGI_ph_hits_taxa_mge) #3,661 hits
+
+
+
+#filter these by retaining only single reads - filter on best identity and bit score (outputs that rgi give, remmember we dont have blastn outputs for amr hits like e value, alignment length that we filtered on when we were looking at blastn or blastx searching of amr genes, so we have to further filter these results down based on a weighted score of variables outputted by rgi, in this case ove chosen % identity and bit score, because rgi is based on bit scores)
+
+
+gm_RGI_ph_hits_taxa_mge$Best_Hit_Bitscore <- as.numeric(gm_RGI_ph_hits_taxa_mge$Best_Hit_Bitscore)
+gm_RGI_ph_hits_taxa_mge$Best_Identities <- as.numeric(gm_RGI_ph_hits_taxa_mge$Best_Identities)
+
+
+gm_RGI_ph_hits_taxa_cleaned <- gm_RGI_ph_hits_taxa_mge %>%
+group_by (query.acc, Best_Hit_Bitscore, Best_Identities) %>% #im adding resistance gene here as when i didnt do this, i was still getting a single read hitting to two different amr genes being retained, but again i only want a single hit per read. the amr genes must be very genetically similar (it was aad and tetL i was looking at, because both hits for the same read were over 99% id and 98% coverage for both genes. But lets be really strict and only keep the best hit)
+            
+               mutate(weight_score2 = Best_Hit_Bitscore * Best_Identities) %>%
+    ungroup() %>%
+  group_by(query.acc)%>% #just get the filtering to work on duplicated reads 
+             filter(weight_score2 == max(weight_score2)) %>%
+            #  filter(relative_count == max(relative_count)) %>%
+              slice_sample(n=1) %>%
+              ungroup() #3,457 hits 
+
+save(gm_RGI_ph_hits_taxa_cleaned, file = "gm_RGI_ph_hits_taxa_cleaned") #saving the file for quick reloading later on
+load("gm_RGI_ph_hits_taxa_cleaned") 
+write.csv(gm_RGI_ph_hits_taxa_cleaned, "gm_RGI_ph_hits_taxa_cleaned.csv")
+
+
+```
+
+Protein homolog RGI hits
+
+```{r}
+#for thesis
+
+
+##lets get a breakdown of the amr gene names on bacterial spp detected with rgi on CARD for protein homolog hits only:
+gm_gene_names_rgi_clean_ph <- gm_RGI_ph_hits_taxa_cleaned%>%
+  select(Best_Hit_ARO, Drug.Class, Resistance.Mechanism, species.x) %>%
+   select(Best_Hit_ARO, Drug.Class, Resistance.Mechanism, species.x) %>%
+  summarise(count = n()) %>%
+  mutate(prop =prop.table(count)) %>%
+  ungroup() %>%
+  arrange(desc(prop))
+ 
+save(gm_gene_names_rgi_clean_ph, file =  "gm_gene_names_rgi_clean_ph")
+
+write.csv(gm_gene_names_rgi_clean_ph, "gm_gene_names_rgi_clean_ph.csv")
+```
+
+
+
