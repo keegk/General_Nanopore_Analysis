@@ -61,8 +61,11 @@ BLASTn text outputs:
     - For CARD nucleotide database, using script making_CARD_seq_db.sh
     - For CARD protein database, using script making_CARD_seq_db_updated.sh
 
- 2) BLAST on CARD
+ 2) BLAST and RGI on CARD
     -   BLASTn: blast_CARD_outfmt7_coverage.sh
     -   BLASTx: blastx_CARD_outfmt7_coverage.sh
     -   -RGI : rgi.sh
-         
+
+3) BLAST and KMA on Resfinder
+   - BLASTn against Resfinder: blast_resfinder_outfmt7.sh
+   - KMA against Resfinfer: resfinder_tool.sh  
