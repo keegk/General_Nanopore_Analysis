@@ -73,3 +73,8 @@ BLASTn text outputs:
 **Mobile genetic elements analysis**
 
 1) Using the scripts mobileOGs-pl-kyanite.sh and mobileOGs-pl-kyanite.py available from https://github.com/clb21565/mobileOG-db/blob/main/mobileOG-pl/UsageGuidance.md, all reads were queried against the mobileOG database (v beatrix-1.6)
+
+**Merging putative taxonomies of reads to AMR gene and MGE results**
+- For AMR genes detected using BLASTn and BLASTx against CARD: Merging_taxa_AMR_CARD_MGE.Rmd
+- For AMR genes detected using RGI against CARD: Merging_taxa_AMR_RGI_MGE.Rmd
+- - For AMR genes detected using BLASTn and KMA against Resfinder: Merging_taxa_AMR_Resfinder_MGE.Rmd
