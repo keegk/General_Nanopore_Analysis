@@ -1,0 +1,560 @@
+---
+title: "Merging taxonomy info, AMR genes detected with BLASTn and KMA against Resfinder database and mobile genetic elements detected in mobileOG database"
+output: html_notebook
+---
+
+
+```{r setup}
+
+library(dplyr)
+library(stringr) #for str_extract function
+library(jsonlite) #for reading in json file
+library(tidyr) #for use with replace_na
+
+packageVersion("dplyr")
+```
+
+
+#load in taxa results (stringent)
+
+load in all the taxonomy results from each run, merging them into one file
+```{r}
+load("cvn1_stringent_2025_clean4") #only barcodes 2,5  and 8 from this run
+load("cvn2_stringent_2025_clean4")#only barcodes barcode3","barcode4","barcode5","barcode6","barcode7","barcode8","barcode9","barcode22" kept
+load("cvn3_stringent_2025_clean4") #only barcodes "barcode1","barcode2","barcode10" kept
+load("stringent_2025_gm1")
+load("stringent_2025_gm2")
+load("stringent_2025_gm4") #only barcodes 5-20 kept from gm3 run
+
+merged_all_runs <- bind_rows(cvn1_stringent_2025_clean4,cvn2_stringent_2025_clean4,cvn3_stringent_2025_clean4,stringent_2025_gm1,stringent_2025_gm2,stringent_2025_gm4)
+
+save(merged_all_runs, file = "merged_all_runs") #saving the file for quick reloading later on
+
+load("merged_all_runs")
+
+all_runs_no_controls <- merged_all_runs %>%
+                        filter(!sample_name %in% c("HMW_POS_CTRL", "LOG_DNA_POS_CTRL","LOG_POS_CTRL", "16S_POS_CTRL", "NEG_CTRL", "NEG_EXT_CTRL"))
+
+save(all_runs_no_controls, file = "all_runs_no_controls") #saving the file for quick reloading later on
+
+load("all_runs_no_controls")
+```
+
+
+##json
+
+```{r}
+library(rjson)
+
+card_json <- fromJSON("card.json")
+
+card_dfs <- lapply(card_json, function(x) {
+  df <- as.data.frame(x)
+  return(df)
+})
+
+save(card_dfs, file = "card_dfs") #saving the file for quick reloading later on
+
+load("card_dfs")
+
+# Apply str_extract to remove trailing letters, digits, and dots on variables with the name category_aro
+card_dft <- lapply(card_dfs, function(df) {
+  colnames(df) <- ifelse(grepl("category_aro", colnames(df)), 
+                         str_extract(colnames(df), "category_aro.*"), 
+                         colnames(df))
+  return(df)
+})
+
+#now list out the columns you are interested in extracting
+
+columns_of_interest <- c("model_type", "ARO_accession", "ARO_description", "category_aro_name", "category_aro_description", "category_aro_class_name")
+
+#remove these columns from your dataset
+
+interests <- lapply(card_dft, function(x) {
+  df <- as.data.frame(x)
+  available_columns <- intersect(columns_of_interest, names(df))
+  df <- df[, available_columns, drop = FALSE]  # Select columns of interest that exist
+  return(df)
+})
+
+##bind them into a dataframe
+
+card_dataframe <- do.call(rbind, interests)
+
+
+#now read in the aro_index file to pull in resistance mechanism
+aro_index <-  read.delim("aro_index.tsv", sep= "\t",  header = TRUE) #now with bitscores included
+
+#change the name of ARO.ACCession to match the one in card_dataframe
+
+aro_index <- aro_index %>%
+                mutate(ARO_accession = str_extract(ARO.Accession, "(?<=ARO:)[0-9]+"))
+
+#this bit of code isnt working
+aro <- aro_index %>%
+              select (c("ARO_accession", "Drug.Class", "Resistance.Mechanism"))
+
+#MERGE these columns of interest in with our json dataframe
+
+amr_info <- left_join(x = card_dataframe, y = aro, by = "ARO_accession")
+
+##rename ARO_accession to just Accession, so this table can be merged with the blast results later
+
+amr_info$Accession <- amr_info$ARO_accession
+
+save(amr_info, file = "amr_info") #saving the file for quick reloading later on
+
+#load("amr_info")
+
+```
+
+Load in AMR BLASTn results:
+
+I'm going to trial loading a single blastn CARD file that is all the sampl blastn CARD results merged together. These wont have the barcode to match up the sample with, but will have the query name (read name) which we should be able to match up with the taxa dataset which has all the sample info with that read.
+
+```{r}
+#reading in the blastn file
+CARD <-  read.table("gut_microbiome_all_blastn_CARD.txt", sep="",  header = FALSE) #now with bitscores included
+
+colnames(CARD) <- c("subject.sci.names","query.acc","subject.acc", "percent.identity", "coverage", "coverage_hsp", "alignment.length", "mismatches","gap.opens", "gaps", "subject.length", "query.length", "q.start", "q.end", "s.start", "s.end", "evalue", "subject.tax.ids", "bitscore")
+
+gm_all_blastn_df <- CARD %>%
+        mutate(Accession = str_extract(subject.acc, "(?<=ARO:)[0-9]+")) #Here I have to use V3 (column 3) as the columns don't have names (blast text files didn't retain these)
+
+
+```
+
+##joining the blastn results against CARD with all the amr_info from CARD
+
+```{r}
+gm_all_blastn_CARD_2025 <- left_join(gm_all_blastn_df, amr_info, by = "Accession", relationship = "many-to-many") # adding all matched columns in snps to acc_df, using the column name they both have in common, "Accession". Note I had to add the many to many relationship argument because in both datasets, there are multiple copies of the same accession number.
+
+
+
+
+gm_all_blastn_CARD_2025_filtered <- gm_all_blastn_CARD_2025 %>%
+     mutate(subject.alignment.frac = alignment.length/subject.length, #this gives you subject coverage, the % of the target amr gene that is covered by the query read. This is the original coverage metric we want, set to 60%
+         query.alignment.frac = alignment.length/query.length) %>%
+        filter(percent.identity >= 80, subject.alignment.frac >= .6)#still not quite sure how this fraction works but including for now. Also set this at 60% in the next filtering stage
+
+save(gm_all_blastn_CARD_2025_filtered, file = "gm_all_blastn_CARD_2025_filtered") #saving the file for quick reloading later on
+load("gm_all_blastn_CARD_2025_filtered") #load the saved file     
+
+#BLASTN WITH TAXA INFO
+
+gm_blastn_CARD_2025_taxa <- left_join(all_runs_no_controls, gm_all_blastn_CARD_2025_filtered , by = "query.acc", relationship = "many-to-many")
+
+save(gm_blastn_CARD_2025_taxa, file = "gm_blastn_CARD_2025_taxa") #saving the file for quick reloading later on
+load("gm_blastn_CARD_2025_taxa")
+
+
+```
+
+blastn against CARD, taxa info and now adding mge info:
+
+```{r}
+
+#load in mge
+
+
+   
+gm_mge <- read.csv(file = "gut_microbiome_all_mge.csv",  header = TRUE)
+
+#change the name of Specific.Contig to query.acc so that I can merge the amr_filters_CARD and the grey_seal_mge datasets together using this linker column, which is the query name, but just with different headings on both datasets:
+
+gm_mge$query.acc <- gm_mge$Specific.Contig
+
+
+#merge the mge results
+
+gm_blastn_CARD_2025_taxa_mge <- left_join(gm_blastn_CARD_2025_taxa, gm_mge, by = "query.acc", relationship = "many-to-many")
+
+save(gm_blastn_CARD_2025_taxa_mge, file = "gm_blastn_CARD_2025_taxa_mge") #saving the file for quick reloading later on
+load("gm_blastn_CARD_2025_taxa_mge") ##this is the dataset that has EVERYTHING - The blastn amr gene hit, if its associated awith a bacterial spp from the sample and whether this amr gene is a mge
+
+nrow(gm_blastn_CARD_2025_taxa_mge) #1024895 amr hits
+
+
+
+#filter this dataset, gm_blastn_CARD_2025_taxa_mge further, because there are multiple hits of the same read and we only want one hit per read:
+
+#THIS NEEDS TO BE FILTERING ON THE AMR GENE, NOT THE SPECIES (.y rather than .x in the dataframe):
+
+gm_blastn_CARD_2025_taxa_mge_cleaned <- gm_blastn_CARD_2025_taxa_mge %>%
+group_by (query.acc, subject.acc.y) %>% # FILTERING STEP 1: by grouping the read with saccession, if the same read hits to multiple samr genes, all these genes are retained for that read
+            
+               mutate(evalue_nonzero = ifelse(evalue.y == 0, 1, evalue.y), 
+                      relative_evalue = ifelse(evalue.y == 0, 1, min(evalue_nonzero)/evalue_nonzero)) %>%
+              mutate(relative_alignment_length = alignment.length.y/max(alignment.length.y)) %>%
+              mutate(alignment_count = n()) %>% #taxon alignment count within a read 
+              
+              ungroup() %>%
+              group_by(query.acc) %>%
+             
+              mutate(relative_count = alignment_count/n()) %>% #proportion of read alignments to a taxon
+               mutate(weight_score = relative_evalue*relative_alignment_length*(percent.identity.y/100)) %>%
+             filter(weight_score == max(weight_score)) %>%
+              filter(relative_count == max(relative_count)) %>%
+              slice_sample(n=1) %>%
+              ungroup() %>%
+              mutate(Best_Hit_ARO = str_extract(subject.acc.y, "[^|]+$")) %>% #also filtering to remove the leading symbols in the card amr name column and renaiming it Best_Hit_ARO to be able to merge results with rgi (who have this as the amr gene name column) later
+              rename(AMR.Gene.Family = category_aro_name) #renaming this column so it matches the name in the rgi results for potential merging later
+
+
+
+###saving individual bits from the main dataset
+
+#1 this dataset represents amr genes on identified species (VIA BLASTN ON card), and all the genes are on mobile genetic elements
+  
+
+gm_blastn_AMR_with_mge <- gm_blastn_CARD_2025_taxa_mge_cleaned %>%
+                         filter (!ARO_accession == "NA") %>%
+                        filter (!species.x == "NA") %>%
+                        filter (!Sequence.Title == "NA")# this dataset represents amr genes on identified species, and all the genes are on mobile genetic elements
+  
+save(gm_blastn_AMR_with_mge, file = "gm_blastn_AMR_with_mge") #saving the file for quick reloading later on
+load("gm_blastn_AMR_with_mge")
+nrow(gm_blastn_AMR_with_mge) #54 amr genes identified in specific bacterial spp which are also identified on mobile genetic elements 
+
+
+
+#2 this dataset represents a more refined version of dataset 1: amr genes on identified species (VIA BLASTN ON card) that are *protein homolog hits*, and all the genes are on mobile genetic elements
+
+gm_blastn_AMR_with_mge_ph <- gm_blastn_CARD_2025_taxa_mge_cleaned %>%
+                        filter (!ARO_accession == "NA") %>%
+                        filter (model_type == "protein homolog model") %>%
+                        filter (!species.x == "NA") %>%
+                        filter (!Sequence.Title == "NA")# this dataset represents amr genes on identified species, and all the genes are on mobile genetic elements
+  
+save(gm_blastn_AMR_with_mge_ph, file = "gm_blastn_AMR_with_mge_ph") #saving the file for quick reloading later on
+load("gm_blastn_AMR_with_mge_ph")
+nrow(gm_blastn_AMR_with_mge_ph) #46 amr genes identified in specific bacterial spp with ph hits which are also identified on mobile genetic elements 
+
+#FOR ELEANOR: pulling out the reads that have an mge, that were found in blastn FOR CARD AND RESFINDER:
+
+staph_arues_blastn_mge_CARD <- gm_blastn_AMR_with_mge_ph %>%
+                filter(species.x == "Staphylococcus aureus")
+
+#3 this dataset represents  amr genes on identified species (VIA BLASTN ON card) that are *protein homolog hits*, and the genes may or may not be on mobile genetic elements
+
+gm_blastn_AMR_with_ph <- gm_blastn_CARD_2025_taxa_mge_cleaned %>%
+                        filter (!ARO_accession == "NA") %>%
+                        filter (model_type == "protein homolog model") %>%
+                        filter (!species.x == "NA") 
+                       
+  
+save(gm_blastn_AMR_with_ph, file = "gm_blastn_AMR_with_ph") #saving the file for quick reloading later on
+load("gm_blastn_AMR_with_ph")
+nrow(gm_blastn_AMR_with_ph) #2723 amr genes identified in specific bacterial spp with ph hits which may or may not also be identified on mobile genetic elements 
+
+
+
+
+##lets get a breakdown of the amr genes detected with blastn on CARD:
+gm_genes_detected_blastn_clean <- gm_blastn_CARD_2025_taxa_mge_cleaned %>%
+  group_by(Resistance.Mechanism) %>%
+  summarise(count = n()) %>%
+  mutate(prop =prop.table(count)) %>%
+  ungroup() %>%
+  arrange(desc(prop))
+ 
+write.csv(gm_genes_detected_blastn_clean, "gm_genes_detected_blastn_clean.csv")
+
+
+
+#for thesis
+
+#global view of amr genes in the entried dataset from blastn results:
+
+nrow(gm_blastn_CARD_2025_taxa_mge_cleaned) #13205 total amr genes found in the entried dataset 
+
+gm_genes_detected_clean <- gm_blastn_CARD_2025_taxa_mge_cleaned %>% 
+  group_by(Resistance.Mechanism, model_type, species.x, Major.mobileOG.Category, category_aro_name, Drug.Class) %>%
+ # mutate(species = replace_na(species, "Unassigned")) %>%
+ # group_by(Resistance.Mechanism, species) %>%
+  summarise(count = n()) %>%
+  mutate(species.x = replace_na(species.x, "Unassigned")) %>%
+  mutate(Major.mobileOG.Category = replace_na(Major.mobileOG.Category, "No Mobile Genetic Element Detected")) %>%
+  ungroup()
+
+write.csv(gm_genes_detected_clean, "gm_full_AMR_blastn_breakdown.csv")
+
+##resistance mechanism on total dataset:
+
+blastn_resistance_mechanism_total <- gm_blastn_CARD_2025_taxa_mge_cleaned %>% 
+ # group_by(Resistance.Mechanism, model_type, species.x, Major.mobileOG.Category, category_aro_name, Drug.Class) %>%
+  #mutate(species.x = replace_na(species.x, "Unassigned")) %>%
+  group_by(Resistance.Mechanism) %>%
+  summarise(count = n()) %>%
+    mutate(prop =prop.table(count)) %>%
+  ungroup() %>%
+  arrange(desc(prop))
+
+write.csv(blastn_resistance_mechanism_total, "blastn_resistance_mechanism_total.csv")
+
+##lets get a breakdown of the resistance mechanims detected with blastn on CARD for protein homolog hits only:
+gm_genes_detected_blastn_clean_ph <- gm_blastn_AMR_with_ph  %>%
+  group_by(Resistance.Mechanism) %>%
+  summarise(count = n()) %>%
+  mutate(prop =prop.table(count)) %>%
+  ungroup() %>%
+  arrange(desc(prop))
+ 
+write.csv(gm_genes_detected_blastn_clean_ph, "gm_genes_detected_blastn_clean_ph.csv")
+
+##lets get a breakdown of the amr gene names on bacterial spp detected with blastn on CARD for protein homolog hits only:
+gm_gene_names_blastn_clean_ph <- gm_blastn_AMR_with_ph %>%
+  select(Best_Hit_ARO, Drug.Class, Resistance.Mechanism, species.x,percent.identity.x, evalue.x) %>%
+  group_by(Best_Hit_ARO, Drug.Class, Resistance.Mechanism, species.x) %>%
+  summarise(count = n()) %>%
+  mutate(prop =prop.table(count)) %>%
+  ungroup() %>%
+  arrange(desc(prop))
+
+
+
+save(gm_gene_names_blastn_clean_ph, file = "gm_gene_names_blastn_clean_ph") #saving the file for quick reloading later on
+load("gm_gene_names_blastn_clean_ph")
+
+write.csv(gm_gene_names_blastn_clean_ph, "gm_gene_names_blastn_clean_ph.csv")
+
+
+#add drug.claa, resistance mechanims
+
+```
+
+Visualising the blastn AMR gene results 
+
+```{r}
+
+#install.packages("plotly")
+library(plotly) #for sunburst charts
+
+sunburst_df_large <- gm_blastn_CARD_2025_taxa_mge_cleaned %>%
+  group_by(Resistance.Mechanism, model_type, species.x, Major.mobileOG.Category) %>%
+  filter(Resistance.Mechanism == "antibiotic target alteration") %>%
+  summarise(count = n()) %>%
+  mutate(species.x = replace_na(species.x, "Unassigned")) %>%
+  mutate(Major.mobileOG.Category = replace_na(Major.mobileOG.Category, "No Mobile Genetic Element")) %>%
+  ungroup()
+
+sunburst_df_small <- gm_blastn_CARD_2025_taxa_mge_cleaned %>%
+  group_by(Resistance.Mechanism, model_type, species.x, Major.mobileOG.Category) %>%
+ # mutate(rename(Resistance.Mechanism("reduced permeability;resistance by absence" == "reduced permeability to antibiotic; resistance by absence"))) %>%
+  filter(!Resistance.Mechanism == "antibiotic target alteration") %>%
+  summarise(count = n()) %>%
+  mutate(species.x = replace_na(species.x, "Unassigned")) %>%
+  mutate(Major.mobileOG.Category = replace_na(Major.mobileOG.Category, "No Mobile Genetic Element")) %>%
+  ungroup()
+
+
+sunburst_df_ph <- gm_blastn_AMR_with_ph %>%
+  group_by(Resistance.Mechanism, species.x, Major.mobileOG.Category) %>%
+ # mutate(rename(Resistance.Mechanism("reduced permeability;resistance by absence" == "reduced permeability to antibiotic; resistance by absence"))) %>%
+  #filter(model_type == "protein homolog model") %>%
+  summarise(count = n()) %>%
+  mutate(species.x = replace_na(species.x, "Unassigned")) %>%
+  mutate(Major.mobileOG.Category = replace_na(Major.mobileOG.Category, "No Mobile Genetic Element")) %>%
+  ungroup()
+
+
+sunburst_df_ph_mge <- gm_blastn_AMR_with_mge_ph %>%
+  group_by(Resistance.Mechanism, species.x, Major.mobileOG.Category) %>%
+ # mutate(rename(Resistance.Mechanism("reduced permeability;resistance by absence" == "reduced permeability to antibiotic; resistance by absence"))) %>%
+  #filter(model_type == "protein homolog model") %>%
+  summarise(count = n()) %>%
+  mutate(species.x = replace_na(species.x, "Unassigned")) %>%
+  mutate(Major.mobileOG.Category = replace_na(Major.mobileOG.Category, "No Mobile Genetic Element")) %>%
+  ungroup()
+
+
+ 
+#################################
+
+#This function turns a data frame into a hierarchical data structure, TAKEN FROM https://rpubs.com/DragonflyStats/Sunburst-Plots-With-Plotly
+
+as.sunburstDF <- function(DF, value_column = NULL, add_root = FALSE){
+  require(data.table)
+  
+  colNamesDF <- names(DF)
+  
+  if(is.data.table(DF)){
+    DT <- copy(DF)
+  } else {
+    DT <- data.table(DF, stringsAsFactors = FALSE)
+  }
+  
+  if(add_root){
+    DT[, root := "Total"]  
+  }
+  
+  colNamesDT <- names(DT)
+  hierarchy_columns <- setdiff(colNamesDT, value_column)
+  DT[, (hierarchy_columns) := lapply(.SD, as.factor), .SDcols = hierarchy_columns]
+  
+  if(is.null(value_column) && add_root){
+    setcolorder(DT, c("root", colNamesDF))
+  } else if(!is.null(value_column) && !add_root) {
+    setnames(DT, value_column, "values", skip_absent=TRUE)
+    setcolorder(DT, c(setdiff(colNamesDF, value_column), "values"))
+  } else if(!is.null(value_column) && add_root) {
+    setnames(DT, value_column, "values", skip_absent=TRUE)
+    setcolorder(DT, c("root", setdiff(colNamesDF, value_column), "values"))
+  }
+  
+  hierarchyList <- list()
+  
+  for(i in seq_along(hierarchy_columns)){
+    current_columns <- colNamesDT[1:i]
+    if(is.null(value_column)){
+      currentDT <- unique(DT[, ..current_columns][, values := .N, by = current_columns], by = current_columns)
+    } else {
+      currentDT <- DT[, lapply(.SD, sum, na.rm = TRUE), by=current_columns, .SDcols = "values"]
+    }
+    setnames(currentDT, length(current_columns), "labels")
+    hierarchyList[[i]] <- currentDT
+  }
+  
+  hierarchyDT <- rbindlist(hierarchyList, use.names = TRUE, fill = TRUE)
+  
+  parent_columns <- setdiff(names(hierarchyDT), c("labels", "values", value_column))
+  hierarchyDT[, parents := apply(.SD, 1, function(x){fifelse(all(is.na(x)), yes = NA_character_, no = paste(x[!is.na(x)], sep = ":", collapse = " - "))}), .SDcols = parent_columns]
+  hierarchyDT[, ids := apply(.SD, 1, function(x){paste(x[!is.na(x)], collapse = " - ")}), .SDcols = c("parents", "labels")]
+  hierarchyDT[, c(parent_columns) := NULL]
+  return(hierarchyDT)
+}
+
+sunburstDF_large <- as.sunburstDF(sunburst_df_large, value_column = "count", add_root = TRUE)
+sunburstDF_small <- as.sunburstDF(sunburst_df_small, value_column = "count", add_root = TRUE)
+sunburst_df_ph <- as.sunburstDF(sunburst_df_ph, value_column = "count", add_root = TRUE)
+sunburstDF_ph_mge <- as.sunburstDF(sunburst_df_ph_mge, value_column = "count", add_root = TRUE)
+#head(sunburstDF)
+
+#fig <- plot_ly(sunburstDF, ids = ~ids, labels = ~labels, parents = ~parents, type = 'sunburst')
+
+#fig
+```
+
+```{r} 
+#just antibiotic inactivation
+fig <- plot_ly()
+
+fig<- fig %>% add_trace(
+  type='sunburst',
+  ids=sunburstDF_large$ids,
+  labels=sunburstDF_large$labels,
+  parents=sunburstDF_large$parents,
+ # values = sunburstDF_large$values,
+  insidetextorientation='auto'
+ #makes the text show in a circle around the plot
+ ) %>%
+   
+layout(
+  uniformtext = list(minsize = 8, mode = 'show')#,  # Adjust minsize to your desired font size
+ # title = "Breakdown of Predominat Resistance Mechanism Detected: Antibiotic Target Alteration" # used this resource to generate the font size code https://plotly.com/r/text-and-annotations/, 
+  
+)
+
+fig
+```
+
+
+sunburst_df_ph
+
+
+```{r} 
+#all the other resistance mechanisms
+fig <- plot_ly()
+
+fig<- fig %>% add_trace(
+  type='sunburst',
+  ids=sunburst_df_ph$ids,
+  labels=sunburst_df_ph$labels,
+  parents=sunburst_df_ph$parents,
+ # values = sunburstDF_large$values,
+  insidetextorientation='auto'
+ #makes the text show in a circle around the plot
+ ) %>%
+   
+layout(
+  uniformtext = list(minsize = 6, mode = 'hide'),  # Adjust minsize to your desired font size
+ # title = "Breakdown of other Antibiotic Resistance Mechanisms in the Grey Seal Dataset ", # used this resource to generate the font size code https://plotly.com/r/text-and-annotations/, 
+  
+annotations = list(
+ list(
+ text = "reduced permeability to antibiotic; resistance by absence",
+x = 0.55, # Adjust x and y coordinates to position the annotation correctly
+ y = 0.44,
+ font = list(
+ family = "Arial",
+ size = 8)
+
+,
+
+
+
+showarrow = FALSE,
+arrowhead = 2,
+ ax = 20, # Adjust arrow x position (length)
+ ay = -28 # Adjust arrow y position (length)
+
+
+)
+
+
+))
+
+fig
+```
+
+
+
+
+sunburstDF_ph_mge - PH and MGE RESULTS
+
+```{r} 
+#protein homolog hits only - resistance mechanisms
+library(plotly) 
+fig <- plot_ly()
+
+fig<- fig %>% add_trace(
+  type='sunburst',
+  ids=sunburstDF_ph_mge$ids,
+  labels=sunburstDF_ph_mge$labels,
+  parents=sunburstDF_ph_mge$parents,
+ # values = sunburstDF_large$values,
+  insidetextorientation='auto'
+ #makes the text show in a circle around the plot
+ ) %>%
+   
+layout(
+  uniformtext = list(minsize = 6, mode = 'hide'),  # Adjust minsize to your desired font size
+ # title = "Breakdown of other Antibiotic Resistance Mechanisms in the Grey Seal Dataset ", # used this resource to generate the font size code https://plotly.com/r/text-and-annotations/, 
+  
+annotations = list(
+ list(
+ text = "reduced permeability to antibiotic; resistance by absence",
+x = 0.55, # Adjust x and y coordinates to position the annotation correctly
+ y = 0.44,
+ font = list(
+ family = "Arial",
+ size = 8)
+
+,
+
+
+
+showarrow = FALSE,
+arrowhead = 2,
+ ax = 20, # Adjust arrow x position (length)
+ ay = -28 # Adjust arrow y position (length)
+
+
+)
+
+
+))
+
+fig
+```
