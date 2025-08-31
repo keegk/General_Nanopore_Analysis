@@ -69,3 +69,7 @@ BLASTn text outputs:
 3) BLAST and KMA on Resfinder
    - BLASTn against Resfinder: blast_resfinder_outfmt7.sh
    - KMA against Resfinfer: resfinder_tool.sh  
+
+**Mobile genetic elements analysis**
+
+1) Using the scripts mobileOGs-pl-kyanite.sh and mobileOGs-pl-kyanite.py available from https://github.com/clb21565/mobileOG-db/blob/main/mobileOG-pl/UsageGuidance.md, all reads were queried against the mobileOG database (v beatrix-1.6)
