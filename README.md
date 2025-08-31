@@ -63,5 +63,5 @@ BLASTn text outputs:
 
  2) BLAST on CARD
     -   BLASTn: blast_CARD_outfmt7_coverage.sh
-    -   BLASTx: 
+    -   BLASTx: blastx_CARD_outfmt7_coverage.sh 
          
