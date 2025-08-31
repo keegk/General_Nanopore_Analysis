@@ -77,4 +77,4 @@ BLASTn text outputs:
 **Merging putative taxonomies of reads to AMR gene and MGE results**
 - For AMR genes detected using BLASTn and BLASTx against CARD: Merging_taxa_AMR_CARD_MGE.Rmd
 - For AMR genes detected using RGI against CARD: Merging_taxa_AMR_RGI_MGE.Rmd
-- - For AMR genes detected using BLASTn and KMA against Resfinder: Merging_taxa_AMR_Resfinder_MGE.Rmd
+-  For AMR genes detected using BLASTn and KMA against Resfinder: Merging_taxa_AMR_Resfinder_MGE.Rmd
