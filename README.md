@@ -55,8 +55,13 @@ BLASTn text outputs:
    -Filtering_1_Assinging_Taxonomy.Rmd
    -Filtering_2_Additional_Taxonomy_Filtering.Rmd
    
-10) AMR gene analysis - making the AMR databases on a HPCC
+ **AMR gene analysis**
+ 
+ 1) making the AMR databases on a HPCC
     - For CARD nucleotide database, using script making_CARD_seq_db.sh
     - For CARD protein database, using script making_CARD_seq_db_updated.sh
 
-      
+ 2) BLAST on CARD
+    -   BLASTn: blast_CARD_outfmt7_coverage.sh
+    -   BLASTx: 
+         
