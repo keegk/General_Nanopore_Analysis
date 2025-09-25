@@ -1,0 +1,627 @@
+---
+title: "Examiningg Positive and negative controls from cvn1,2,3,gm1,2,3
+output: html_notebook
+---
+```{r setup}
+library(tidyverse)
+library(stringr)
+library("RColorBrewer") 
+library("ggplot2")
+```
+
+load in all the taxonomy results from each run
+```{r}
+load("cvn1_stringent_2025_clean3")
+load("cvn2_stringent_2025_clean3")
+load("cvn3_stringent_2025_clean3")
+load("stringent_2025_gm1")
+load("stringent_2025_gm2")
+load("stringent_2025_gm3")
+
+
+merged_all_runs_ctrls_incl <- bind_rows(cvn1_stringent_2025_clean3,cvn2_stringent_2025_clean3,cvn3_stringent_2025_clean3,stringent_2025_gm1,stringent_2025_gm2,stringent_2025_gm3)
+
+save(merged_all_runs_ctrls_incl, file = "merged_all_runs_ctrls_incl") #saving the file for quick reloading later on
+
+load("merged_all_runs_ctrls_incl")
+```
+
+Extract just the Positive barcodes (HMW control, 16s control, log dna control)
+
+```{r}
+#merge all the datasets - ive merged the cvn ruins separately to the gm runs, as they both use different barcodes for each run type (cvn vs gm) but the same barcodes are assigned to the same pos ctrl within the groups (e.g barcode 21 and 24 in cvn1,2 and 3 run are alll pos ctrls)
+
+
+
+stringent_cvn_all <- bind_rows(cvn1_stringent_2025_clean3,cvn2_stringent_2025_clean3,cvn3_stringent_2025_clean3)
+
+stringent_gm_all <-bind_rows (stringent_2025_gm1,stringent_2025_gm2,stringent_2025_gm3)
+
+# then just extract the positive control barcodes:
+stringent_cvn_pos_ctrls <- stringent_cvn_all %>%
+                            filter(barcode %in% c("barcode23", "barcode24"))
+
+stringent_gm_pos_ctrls <- stringent_gm_all %>%
+                            filter(barcode %in% c("barcode21", "barcode24"))
+
+#merge both of these datasets now that we have extracted the positive controls:
+
+stringent_all_pos_ctrls <- bind_rows(stringent_cvn_pos_ctrls, stringent_gm_pos_ctrls)
+
+
+stringent_all_pos_ctrls_no_unassigned <- stringent_all_pos_ctrls %>%
+                                          filter(!genus == "NA") 
+
+save(stringent_all_pos_ctrls_no_unassigned, file = "stringent_all_pos_ctrls_no_unassigned") #saving the file for quick reloading later on
+
+load("stringent_all_pos_ctrls_no_unassigned")
+```
+
+
+
+How do the HMW POS barcodes look?
+#working code just looking at the hmw in terms of genomic dna - not including 16s data
+
+```{r, fig.height= = 60}
+
+# Define the new sample and specific proportions
+
+observed_hmw_df <- stringent_all_pos_ctrls_no_unassigned  %>% 
+  filter(sample_name == "HMW_POS_CTRL")
+
+#observed prop, no unassigned 
+HMW_prop_obs  <- observed_hmw_df %>%
+  group_by(sample_name,run, genus) %>%
+
+#here i want to add a sample that represents the expected proportions of bacteria in the HMW control, to compare my observed results too:
+ # distinct(subject.tax.ids) %>% #adding this 26.4.24 to remove multiple hits to the same taxa, inflating the numbers
+  summarise(genus_count = n()) %>%
+  mutate(prop =prop.table(genus_count)) %>%
+  ungroup() %>%
+  arrange(desc(prop)) #%>%
+ # mutate(genus = factor(genus, levels = unique(genus)))
+
+
+
+##expected prop, no unassigned
+
+expected_hmw_df <- data.frame(
+ run = "A", #calling it A rather than expected, so it comes up first on the plot, followed by all the observed data
+ genus = rep(c("Pseudomonas", "Escherichia", "Salmonella", "Enterococcus", "Staphylococcus", "Listeria", "Bacillus", "Saccharomyces"), times = c(14, 14, 14, 14, 14, 14, 14, 2)), #writing out the numbers of each genus in the expected control, these will later be converted into proportions
+sample_name = rep(c("Expected"), times = 100)) #including a sample_names column so i can merge the proportions tables later aas they will have the same coloumn names
+
+
+HMW_prop_exp  <- expected_hmw_df %>%
+  group_by(sample_name,run, genus) %>%
+
+#here i want to add a sample that represents the expected proportions of bacteria in the HMW control, to compare my observed results too:
+ # distinct(subject.tax.ids) %>% #adding this 26.4.24 to remove multiple hits to the same taxa, inflating the numbers
+  summarise(genus_count = n()) %>%
+  mutate(prop =prop.table(genus_count)) %>%
+  ungroup() %>%
+  arrange(desc(prop)) #%>%
+ # mutate(genus = factor(genus, levels = unique(genus)))
+
+
+
+#merge the observed (HMW_prop_obs ) and expected (HMW_prop_exp):
+
+HMW_merged_prop_no16s <- bind_rows(HMW_prop_obs, HMW_prop_exp)
+
+save(HMW_merged_prop_no16s, file = "HMW_merged_prop_no16s") #saving the file for quick reloading later on
+
+load("HMW_merged_prop_no16s")
+
+##remove any genera with a count less than 4
+HMW_merged_prop_no16s_filtered <- HMW_merged_prop_no16s %>%
+                                  filter(!genus_count < 4)
+
+
+##plot the observed and exoected hmw:
+
+#first add x labs
+xlabs <- c( "Expected HMW","Observed run1", "Observed run2", "Observed run3","Observed run4","Observed run5","Observed run6")
+
+
+
+HMW_merged_prop_no16s_filtered %>% 
+# filter(run == "Expected") %>% #filter to phyla that are present at least 0.2% in the data
+  #mutate(phylum = if_else(prop < 0.002, "Other", phylum)) %>%#if the proporion of the phyla is less than 0.2%, then put all these phyla as 'other'\
+ # mutate(genus = if_else(prop < 0.00005, "Other", genus)) %>%
+#AFTER FILTERING FOR UNIQUE TAXA ID, im now changing the other phyla proportion to 0.02, becuase a lot more will be represented on the graph if i left it at 0.002
+  ggplot(aes(x=run,y=prop, fill=genus)) +
+    geom_col() +
+   # ylim(1,0) +
+  ylim(0,1) + #26.4.24 flipping this back to 0 to 1 becuase its more interpretable now
+    labs(x = NULL, y="Proportion", fill = "Genus") +
+        #title="Proportional distribution of bacterial phyla present per extraction method") +
+scale_x_discrete(labels= xlabs) +#swapping out the run names for the list of names in xlabs above
+     theme(text = element_text(size=12),
+    axis.text.x = element_text(angle  = 70, vjust = 1.0, hjust = 1.0)) +
+ #scale_fill_brewer(palette = "Paired", direction = -1)  
+scale_fill_manual(values=c("#A6D854", "#CAB2D6","#33A02C", "#FDBF6F","#66C2A5","#FF7F00","#FB9A99", "#984EA3", "#B54B36","#2C4F3E", "#472C4F","#A62467", "#3C24A6", "#8A8345","#377EB8","#45758A", "#8A4552", "#FB9A99","#8A8945", "#458A5D","#45538A", "#E31A1C","#999999" ,   "#6A3D9A", "#8A6445",  "#8DA0CB","#66C2A5" ,"#CAB2D6","#FB9A99", "#984EA3","#377EB8","#FFFF33", "#E31A1C", "#999999", "#8DA0CB",  "#E31A1C", "#FDBF6F", "#FF7F00" ,  "#A6D854","#CAB2D6", "#984EA3","#377EB8","#FFFF33", "#E31A1C" ))
+
+```
+
+
+HMW pos control 16s version 
+#working code  looking at the hmw in terms of genomic dna AND including 16s EXPECTED/OBSERVED data
+```{r}
+
+##expected 16s prop
+
+##expected prop, no unassigned
+
+expected_hmw_16s_df <- data.frame(
+ run = "Expected",
+ genus = rep(c("Pseudomonas", "Escherichia", "Salmonella", "Enterococcus", "Staphylococcus", "Listeria", "Bacillus"), times = c(5.1,12.4,12.7,12.1,19,17.3,21.4)), #writing out the numbers of each genus in the expected control, these will later be converted into proportions. I got these numbers from the theoretical 16s only composition in the hmw protocol. The reason why there is a genomic dna and 16s theoretical composition columns are because, if you do shotgun seq (as with my nanopore approach) you would expect to get back exactly the genomic composition (ideally), but with 16s amplification, organisms can have differing numbers of 16s copies, so its not a like for like expected composition as with the genomic dna composition when doing shotgun seq.
+sample_name = rep(c("Expected_16S"), times = 100)) #including a sample_names column so i can merge the proportions tables later aas they will have the same coloumn names
+
+
+
+
+#16S hmw PS CONTROL
+
+load("taxa_counts_16s_modified") 
+
+hmw_16s <- taxa_counts_16s_modified %>%
+          filter(sample_name == "HMW-positive-control") %>%
+           group_by(Genus) %>%
+         #  summarise(genus_count = n()) %>%
+            
+summarise(total_count = sum(count), .groups = "drop") %>%
+ mutate(prop = total_count / sum(total_count)) %>%
+ arrange(desc(prop)) %>%
+            rename(genus = Genus) %>%
+            mutate(run = 1) 
+
+
+#mutate(prop =prop.table(count)) %>%
+           # ungroup() %>%
+           ## arrange(desc(prop)) %>%
+            #rename(genus = Genus) %>%
+           # mutate(run = 1) #addint this to 16s data just so it matches nanopore dataframes when merging, there was only one 16s run
+
+hmw_16s$run <- as.character(hmw_16s$run) #needs to be a character to match nanopore dataframe run column which are characters
+##merge the two prop tables
+
+HMW_merged_prop <- bind_rows(HMW_prop_obs, HMW_prop_exp, hmw_16s)
+
+save(HMW_merged_prop, file = "HMW_merged_prop") #saving the file for quick reloading later on
+
+load("HMW_merged_prop")
+
+#change the name of the 16s genera eschic=richia/shigella to escherichoia only (so i can compare it to the others but make a caveat note that these may contain shigella reads)
+
+##adding in a dummy 16s hmw theoretical composition - called it run 16s
+
+
+# Create a new dataframe with the dummy rows
+expected_16s <- tibble(
+  run = "2", #calling it 2 so on the figure it is beside the observed 16s results (run "1")
+  genus = c("Pseudomonas", "Escherichia", "Salmonella", "Enterococcus", "Staphylococcus", "Listeria", "Bacillus"),
+  prop = c(.051,.124,.127,.121,.190,.173,.214),  # theoretical 16s proportions from hmw stadard protocol
+  # Add NA for other columns that exist in df
+  sample_name = NA, #these are columns in the other hmw dataframe with all my other controls, so i have to just add NA to them for this 16s control so i can merge the datasets smoothly
+  genus_count = NA,
+  total_count = NA
+)
+
+HMW_merged_prop2 <- bind_rows(HMW_merged_prop, expected_16s)
+
+
+save(HMW_merged_prop2, file = "HMW_merged_prop2") #saving the file for quick reloading later on
+
+#load("HMW_merged_prop2")
+
+
+
+HMW_merged_prop3 <- HMW_merged_prop2 %>%
+ mutate(genus = recode(genus,"Escherichia/Shigella" = "Escherichia"))
+#change the names of the sequencing runs to 1-6 because the examiner wont understand what cvn1 or gm1 means:
+
+xlabs <- c( "Observed HMW control 16S", "Expected HMW control (16S)", "Observed HMW control run 1", "Observed HMW control run 2", "Observed HMW control run 3","Expected HMW control (genomic DNA)","Observed HMW control run 4","Observed HMW control run 5","Observed HMW control run 6")
+
+
+
+HMW_merged_prop3 %>% 
+# filter(run == "Expected") %>% #filter to phyla that are present at least 0.2% in the data
+  #mutate(phylum = if_else(prop < 0.002, "Other", phylum)) %>%#if the proporion of the phyla is less than 0.2%, then put all these phyla as 'other'\
+  mutate(genus = if_else(prop < 0.005, "Other", genus)) %>%
+#AFTER FILTERING FOR UNIQUE TAXA ID, im now changing the other phyla proportion to 0.02, becuase a lot more will be represented on the graph if i left it at 0.002
+  ggplot(aes(x=run,y=prop, fill=genus)) +
+    geom_col() +
+   # ylim(1,0) +
+  ylim(0,1) + #26.4.24 flipping this back to 0 to 1 becuase its more interpretable now
+    labs(x = NULL, y="Proportion", fill = "Genus") +
+        #title="Proportional distribution of bacterial phyla present per extraction method") +
+scale_x_discrete(labels= xlabs) +#swapping out the run names for the list of names in xlabs above
+     theme(text = element_text(size=12),
+    axis.text.x = element_text(angle  = 55, vjust = 1.0, hjust = 1.0)) +
+ #scale_fill_brewer(palette = "Paired", direction = -1)  
+scale_fill_manual(values=c("#CAB2D6","#FB9A99", "#984EA3","#377EB8","#FFFF33", "#E31A1C", "#999999",  "#6A3D9A", "#8DA0CB", "#A6CEE3", "#E31A1C", "#FDBF6F", "#FF7F00" , "#66C2A5" ,"#A6D854","#CAB2D6","#FB9A99", "#984EA3","#377EB8","#FFFF33", "#E31A1C", "#999999",  "#6A3D9A", "#8DA0CB", "#A6CEE3", "#E31A1C", "#FDBF6F", "#FF7F00" , "#66C2A5" ,"#A6D854","#CAB2D6","#FB9A99", "#984EA3","#377EB8","#FFFF33", "#E31A1C", "#999999"))
+
+```
+
+how many read counts in the "other" category i.e false positives in positive control
+
+```{r}
+
+false_pos <- stringent_all_pos_ctrls_no_unassigned %>%
+              filter(sample_name == "HMW_POS_CTRL") %>%
+              
+              filter(!genus %in% c("Pseudomonas", "Escherichia", "Salmonella", "Enterococcus", "Staphylococcus", "Listeria", "Bacillus", "Saccharomyces")) %>%
+              group_by(run, genus) %>%
+              summarise(genus_count = n()) %>%
+  mutate(prop =prop.table(genus_count)) %>%
+  ungroup() %>%
+  arrange(desc(prop))
+
+#so theres quite a lot of reads being classified incorrectly in the hmw pos control
+
+
+#if i change the hreshold to greater than 0.5% 
+
+#so below is what the threshold is when you set all bacterial genera that are present in less than 0.1% of the dataset as other..so basically it is showing me that when i do set the threshold to 0.5% (e.g a bacteria has to be present in more than 0.5% of the total bacterial reads, in order for me to believe its real). This is also illustrated when you set the threshold to 0.1% - when we "remove" bacteria that are present in less than 0.1% of the dataset, then the only "false positive" genera that are being retained are mammalioccocus, proteus and shigella.
+HMW_merged_prop3 %>% 
+# filter(run == "Expected") %>% #filter to phyla that are present at least 0.2% in the data
+  #mutate(phylum = if_else(prop < 0.002, "Other", phylum)) %>%#if the proporion of the phyla is less than 0.2%, then put all these phyla as 'other'\
+  mutate(genus = if_else(prop < 0.001, "Other", genus)) %>%
+#AFTER FILTERING FOR UNIQUE TAXA ID, im now changing the other phyla proportion to 0.02, becuase a lot more will be represented on the graph if i left it at 0.002
+  ggplot(aes(x=run,y=prop, fill=genus)) +
+    geom_col() +
+   # ylim(1,0) +
+  ylim(0,1) + #26.4.24 flipping this back to 0 to 1 becuase its more interpretable now
+    labs(x = NULL, y="Proportion", fill = "Genus") +
+        #title="Proportional distribution of bacterial phyla present per extraction method") +
+scale_x_discrete(labels= xlabs) +#swapping out the run names for the list of names in xlabs above
+     theme(text = element_text(size=12),
+    axis.text.x = element_text(angle  = 55, vjust = 1.0, hjust = 1.0)) +
+ #scale_fill_brewer(palette = "Paired", direction = -1)  
+scale_fill_manual(values=c("#CAB2D6","#FB9A99", "#984EA3","#377EB8","#FFFF33", "#E31A1C", "#999999",  "#6A3D9A", "#8DA0CB", "#A6CEE3", "#E31A1C", "#FDBF6F", "#FF7F00" , "#66C2A5" ,"#A6D854","#CAB2D6","#FB9A99", "#984EA3","#377EB8","#FFFF33", "#E31A1C", "#999999",  "#6A3D9A", "#8DA0CB", "#A6CEE3", "#E31A1C", "#FDBF6F", "#FF7F00" , "#66C2A5" ,"#A6D854","#CAB2D6","#FB9A99", "#984EA3","#377EB8","#FFFF33", "#E31A1C", "#999999"))
+
+```
+
+
+
+
+```{r}
+#Bray-Curtis similarity - tests whether there is a significant difference in species composition between sites in ecological data, but in the context of my hmw pos cvontrols, we can look for sginificant differences between the sequencing methods (16s vs nanopore).
+
+load("HMW_merged_prop")
+
+
+HMW_BC <-HMW_merged_prop %>%
+ mutate(genus = if_else(prop < 0.005, "Other", genus)) %>%
+filter(!is.na(genus_count)) %>%
+
+ 
+
+hmw_bc2 <- HMW_BC%>%
+
+pivot_wider(
+ names_from = genus,
+ values_from = genus_count,
+values_fill = list(count = 0)
+) %>%
+select(run, genus,genus_count)
+
+
+#install.packages("vegan")
+library(vegan)
+
+# Remove the sequencing_method column for distance calculation
+bray_dist <- vegdist(HMW_BC[,-1], method = "bray")
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+below is messy code i was using to try and get code above working
+```{r}
+
+##initial proportions of everything, no uassigned genus:
+
+
+HMW_prop_no_unassigned <- stringent_all_pos_ctrls_no_unassigned %>% 
+  filter(sample_name == "HMW_POS_CTRL") %>%
+  group_by(sample_name,run, genus) %>%
+
+#here i want to add a sample that represents the expected proportions of bacteria in the HMW control, to compare my observed results too:
+ # distinct(subject.tax.ids) %>% #adding this 26.4.24 to remove multiple hits to the same taxa, inflating the numbers
+  summarise(genus_count = n()) %>%
+  mutate(prop =prop.table(genus_count)) %>%
+  ungroup() %>%
+  arrange(desc(prop)) %>%
+  mutate(genus = replace_na(genus, "Unassigned")) %>%
+  mutate(genus = factor(genus, levels = unique(genus)))
+
+#proportion of bacteria in my HMW controls with the expected control too and unassigned removed
+
+HMW_prop_unassigned_removed  <-  stringent_all_pos_ctrls_no_unassigned  %>% 
+  filter(sample_name == "HMW_POS_CTRL") %>%
+  group_by(sample_name,run, genus) %>%
+
+#here i want to add a sample that represents the expected proportions of bacteria in the HMW control, to compare my observed results too:
+
+mutate(
+ run = ifelse(genus %in% specific_genera, "Expected", run),
+ proportion = ifelse(genus %in% specific_genera, specific_proportions[match(genus, specific_genera)], 0)
+ ) %>%
+
+ # distinct(subject.tax.ids) %>% #adding this 26.4.24 to remove multiple hits to the same taxa, inflating the numbers
+  summarise(genus_count = n()) %>%
+  mutate(prop =prop.table(genus_count)) %>%
+  ungroup() %>%
+  arrange(desc(prop)) %>%
+  mutate(genus = factor(genus, levels = unique(genus)))
+
+```
+
+
+plot HMW controls
+```{r}
+
+##observed proportions only with unassigned
+
+HMW_prop %>% 
+# filter(run == "Expected") %>% #filter to phyla that are present at least 0.2% in the data
+  #mutate(phylum = if_else(prop < 0.002, "Other", phylum)) %>%#if the proporion of the phyla is less than 0.2%, then put all these phyla as 'other'\
+  mutate(genus = if_else(prop < 0.005, "Other", genus)) %>%
+#AFTER FILTERING FOR UNIQUE TAXA ID, im now changing the other phyla proportion to 0.02, becuase a lot more will be represented on the graph if i left it at 0.002
+  ggplot(aes(x=run,y=prop, fill=genus)) +
+    geom_col() +
+   # ylim(1,0) +
+  ylim(1,0) + #26.4.24 flipping this back to 0 to 1 becuase its more interpretable now
+    labs(x="Name", y="Proportion") +
+        #title="Proportional distribution of bacterial phyla present per extraction method") +
+     theme(text = element_text(size=12),
+    axis.text.x = element_text(angle  = 90, vjust = 1.0, hjust = 1.0)) +
+ #scale_fill_brewer(palette = "Paired", direction = -1)  
+scale_fill_manual(values=c("#CAB2D6","#FB9A99", "#984EA3","#377EB8","#FFFF33", "#E31A1C", "#999999",  "#6A3D9A", "#8DA0CB", "#A6CEE3", "#E31A1C", "#FDBF6F", "#FF7F00" , "#66C2A5" ,"#A6D854"))
+
+##observed proportions only no unassigned
+
+HMW_prop_no_unassigned %>% 
+ filter(!genus == "Unassigned") %>% #filter to phyla that are present at least 0.2% in the data
+  #mutate(phylum = if_else(prop < 0.002, "Other", phylum)) %>%#if the proporion of the phyla is less than 0.2%, then put all these phyla as 'other'\
+  mutate(genus = if_else(prop < 0.005, "Other", genus)) %>%
+#AFTER FILTERING FOR UNIQUE TAXA ID, im now changing the other phyla proportion to 0.02, becuase a lot more will be represented on the graph if i left it at 0.002
+  ggplot(aes(x=run,y=prop, fill=genus)) +
+    geom_col() +
+   # ylim(1,0) +
+  ylim(1,0) + #26.4.24 flipping this back to 0 to 1 becuase its more interpretable now
+    labs(x="Name", y="Proportion") +
+        #title="Proportional distribution of bacterial phyla present per extraction method") +
+     theme(text = element_text(size=12),
+    axis.text.x = element_text(angle  = 90, vjust = 1.0, hjust = 1.0)) +
+ #scale_fill_brewer(palette = "Paired", direction = -1)  
+scale_fill_manual(values=c("#CAB2D6","#FB9A99", "#984EA3","#377EB8","#FFFF33", "#E31A1C", "#999999",  "#6A3D9A", "#8DA0CB", "#A6CEE3", "#E31A1C", "#FDBF6F", "#FF7F00" , "#66C2A5" ,"#A6D854"))
+
+
+HMW_prop_unassigned_removed  %>% 
+ # filter(prop > 0.002) %>% #filter to phyla that are present at least 0.2% in the data
+  #mutate(phylum = if_else(prop < 0.002, "Other", phylum)) %>%#if the proporion of the phyla is less than 0.2%, then put all these phyla as 'other'\
+  mutate(genus = if_else(prop < 0.005, "Other", genus)) %>%
+#AFTER FILTERING FOR UNIQUE TAXA ID, im now changing the other phyla proportion to 0.02, becuase a lot more will be represented on the graph if i left it at 0.002
+  ggplot(aes(x=run,y=prop, fill=genus)) +
+    geom_col() +
+   # ylim(1,0) +
+  ylim(1,0) + #26.4.24 flipping this back to 0 to 1 becuase its more interpretable now
+    labs(x="Name", y="Proportion") +
+        #title="Proportional distribution of bacterial phyla present per extraction method") +
+     theme(text = element_text(size=12),
+    axis.text.x = element_text(angle  = 90, vjust = 1.0, hjust = 1.0)) +
+ #scale_fill_brewer(palette = "Paired", direction = -1)  
+scale_fill_manual(values=c("#CAB2D6","#FB9A99", "#984EA3","#377EB8","#FFFF33", "#E31A1C", "#999999",  "#6A3D9A", "#8DA0CB", "#A6CEE3", "#E31A1C", "#FDBF6F", "#FF7F00" , "#66C2A5" ,"#A6D854"))
+
+
+
+```
+
+end of messy code
+
+
+
+
+log dna control 
+```{r}
+
+##observed
+observed_log_df <- stringent_all_pos_ctrls_no_unassigned  %>% 
+  filter(sample_name == "LOG_POS_CTRL")
+
+#observed prop, no unassigned 
+log_prop_obs  <- observed_log_df %>%
+  group_by(sample_name,run, genus) %>%
+
+#here i want to add a sample that represents the expected proportions of bacteria in the HMW control, to compare my observed results too:
+ # distinct(subject.tax.ids) %>% #adding this 26.4.24 to remove multiple hits to the same taxa, inflating the numbers
+  summarise(genus_count = n()) %>%
+  mutate(prop =prop.table(genus_count)) %>%
+  ungroup() %>%
+  arrange(desc(prop)) %>%
+  mutate(genus = factor(genus, levels = unique(genus)))
+
+
+
+
+#making the expected control
+
+# Create a new dataframe with the dummy rows
+expected_log <- tibble(
+  run = "A", #calling it A so its first on the figure and observed follow it
+  genus = c("Listeria", "Pseudomonas","Bacillus", "Saccharomyces", "Escherichia", "Salmonella", "Lactobacillus", "Enterococcus", "Cryptococcus", "Staphylococcus"),
+  prop = c(.891, .089, 0.0089,0.0089,0.00089,0.00089,	0.000089,0.0000089,0.0000089,	0.00000089),  # theoretical 16s proportions from hmw stadard protocol
+  # Add NA for other columns that exist in df
+  sample_name = "LOG_POS_CONTROL", #these are columns in the other hmw dataframe with all my other controls, so i have to just add NA to them for this 16s control so i can merge the datasets smoothly
+  genus_count = NA
+)
+
+##merge the two prop tables
+
+combined_log_control <- bind_rows(log_prop_obs, expected_log)
+
+#figure
+
+#first add x labs
+xlabs <- c( "Expected log control","Observed log control run 1", "Observed log control run 2", "Observed log control run 3")
+
+
+
+combined_log_control %>% 
+# filter(run == "Expected") %>% #filter to phyla that are present at least 0.2% in the data
+  #mutate(phylum = if_else(prop < 0.002, "Other", phylum)) %>%#if the proporion of the phyla is less than 0.2%, then put all these phyla as 'other'\
+  mutate(genus = if_else(prop < 0.00005, "Other", genus)) %>%
+#AFTER FILTERING FOR UNIQUE TAXA ID, im now changing the other phyla proportion to 0.02, becuase a lot more will be represented on the graph if i left it at 0.002
+  ggplot(aes(x=run,y=prop, fill=genus)) +
+    geom_col() +
+   # ylim(1,0) +
+  ylim(0,1) + #26.4.24 flipping this back to 0 to 1 becuase its more interpretable now
+    labs(x = NULL, y="Proportion", fill = "Genus") +
+        #title="Proportional distribution of bacterial phyla present per extraction method") +
+scale_x_discrete(labels= xlabs) +#swapping out the run names for the list of names in xlabs above
+     theme(text = element_text(size=12),
+    axis.text.x = element_text(angle  = 55, vjust = 1.0, hjust = 1.0)) +
+ #scale_fill_brewer(palette = "Paired", direction = -1)  
+scale_fill_manual(values=c("#CAB2D6","#FB9A99", "#984EA3", "#FDBF6F",  "#A6D854","#377EB8" ,"#FFFF33","#E31A1C", "#999999","#6A3D9A", "#8DA0CB", "#A6CEE3", "#E31A1C", "#FDBF6F", "#FF7F00" ,"#CAB2D6","#FB9A99", "#984EA3","#377EB8","#FFFF33", "#E31A1C", "#999999",  "#6A3D9A", "#8DA0CB", "#A6CEE3", "#E31A1C", "#FF7F00" , "#66C2A5" ,"#A6D854","#CAB2D6","#FB9A99", "#984EA3","#377EB8","#FFFF33", "#E31A1C", "#999999"))
+
+#ok, so when you dont count bacteria that are present in less than 0.5% OF THE SAMPLE, THEN the lowest detection rate for bacteria in the log control was sachromyces, which was present in .89% (0.0089 proportion) of the sample
+```
+
+
+
+
+
+Negative controls
+
+Extract just the negative barcodes (water only control, water put through magattract ext method ctrl). Note I only had negatove controls in the gm runs:
+
+```{r}
+
+stringent_gm_neg_ctrls <- stringent_gm_all %>%
+                            filter(barcode %in% c("barcode22", "barcode23"))
+
+neg_prop <- stringent_gm_neg_ctrls %>%
+             group_by(sample_name,run, genus) %>%
+
+#here i want to add a sample that represents the expected proportions of bacteria in the HMW control, to compare my observed results too:
+ # distinct(subject.tax.ids) %>% #adding this 26.4.24 to remove multiple hits to the same taxa, inflating the numbers
+  summarise(genus_count = n()) %>%
+  mutate(prop =prop.table(genus_count)) %>%
+  ungroup() %>%
+  arrange(desc(prop)) %>%
+ mutate(genus = replace_na(genus, "Unassigned")) %>%
+  mutate(genus = factor(genus, levels = unique(genus)))
+
+#should I really do a counts table?
+
+
+neg_prop  %>% 
+ # filter(prop > 0.002) %>% #filter to phyla that are present at least 0.2% in the data
+  #mutate(phylum = if_else(prop < 0.002, "Other", phylum)) %>%#if the proporion of the phyla is less than 0.2%, then put all these phyla as 'other'\
+#  mutate(genus = if_else(prop < 0.005, "Other", genus)) %>%
+#AFTER FILTERING FOR UNIQUE TAXA ID, im now changing the other phyla proportion to 0.02, becuase a lot more will be represented on the graph if i left it at 0.002
+  ggplot(aes(x=genus,y=genus_count, fill = sample_name)) +
+    geom_bar(position='dodge', stat='identity') +
+   # ylim(1,0) +
+  #ylim(1,0) + #26.4.24 flipping this back to 0 to 1 becuase its more interpretable now
+    labs(x="Genus", y="Num,ber of reads") +
+        #title="Proportional distribution of bacterial phyla present per extraction method") +
+     theme(text = element_text(size=8),
+    axis.text.x = element_text(angle  = 90)) +
+ #scale_fill_brewer(palette = "Paired", direction = -1)  
+scale_fill_manual(values=c("#CAB2D6","#FB9A99", "#984EA3","#377EB8","#FFFF33", "#E31A1C", "#999999",  "#6A3D9A", "#8DA0CB", "#A6CEE3", "#E31A1C", "#FDBF6F", "#FF7F00" , "#66C2A5" ,"#A6D854", "#33A02C"))
+
+
+```
+
+
+lets do negative controls at the species level, so i can see if having a cut-off of 10 reads or more is a good way to remove spurious hits:
+
+#REMEMBER YOU ONLY HAVE NEG CONTROLS IN RUNS GM1,2 AND 3
+#the below results are also based on any reads in the negatiove controls, not just bacteria
+
+```{r}
+
+load("merged_all_runs_ctrls_incl")
+
+stringent_gm_neg_ctrls <- merged_all_runs_ctrls_incl %>%
+                            filter(sample_name %in% c("NEG_CTRL", "NEG_EXT_CTRL"))
+
+neg_prop_spp <- stringent_gm_neg_ctrls %>%
+             group_by(sample_name,species.x,run) %>% #include run as we dont want to inflate nega control numbers by lumping all counts in together rather than appreciating that the counts are split over several runs
+  summarise(count = n()) %>%
+  mutate(prop =prop.table(count)) %>%
+  ungroup() %>%
+  arrange(prop) %>%
+   mutate(count= replace_na(count, "Unassigned")) %>%
+  mutate(count = factor(count, levels = unique(count)))
+
+
+#how many species in each of the negative controsls (combining all reads across runs)
+
+ neg_prop_spp_total <-      stringent_gm_neg_ctrls %>%
+group_by(sample_name, species.x) %>% #include run as we dont want to inflate nega control numbers by lumping all counts in together rather than appreciating that the counts are split over several runs
+distinct(species.x) %>%
+ungroup() %>%
+group_by(sample_name) %>%
+  summarise(count = n())
+
+#how many of these bacterial species had a single hit in them?
+
+ neg_single_hits <-      stringent_gm_neg_ctrls %>%
+group_by(sample_name, species.x) %>% #include run as we dont want to inflate nega control numbers by lumping all counts in together rather than appreciating that the counts are split over several runs
+##distinct(species.x) %>%
+#ungroup() %>%
+##group_by(sample_name) %>%
+  summarise(count = n())
+
+
+#should I really do a counts table?
+
+
+neg_prop_spp  %>% 
+ # filter(prop > 0.002) %>% #filter to phyla that are present at least 0.2% in the data
+  #mutate(phylum = if_else(prop < 0.002, "Other", phylum)) %>%#if the proporion of the phyla is less than 0.2%, then put all these phyla as 'other'\
+#  mutate(genus = if_else(prop < 0.005, "Other", genus)) %>%
+#AFTER FILTERING FOR UNIQUE TAXA ID, im now changing the other phyla proportion to 0.02, becuase a lot more will be represented on the graph if i left it at 0.002
+  ggplot(aes(x=species.x,y=count, fill = sample_name)) +
+    geom_bar(position='dodge', stat='identity') +
+   # ylim(1,0) +
+  #ylim(1,0) + #26.4.24 flipping this back to 0 to 1 becuase its more interpretable now
+    labs(x="Species", y="Number of reads") +
+        #title="Proportional distribution of bacterial phyla present per extraction method") +
+     theme(text = element_text(size=8),
+    axis.text.x = element_text(angle  = 90)) +
+ #scale_fill_brewer(palette = "Paired", direction = -1)  
+scale_fill_manual(values=c("#CAB2D6","#FB9A99", "#984EA3","#377EB8","#FFFF33", "#E31A1C", "#999999",  "#6A3D9A", "#8DA0CB", "#A6CEE3", "#E31A1C", "#FDBF6F", "#FF7F00" , "#66C2A5" ,"#A6D854", "#33A02C"))
+
+```
+
+
+Probability distributions of false positive for thesis:
+```{r}
+
+ neg_prop_spp %>%
+            mutate(count = as.integer(as.character(count))) %>%
+            count(count, name = "freq") %>%
+            mutate(prob = freq/sum(freq), freq_error = sqrt(freq), prob_error = freq_error/sum(freq)) %>%
+            ggplot(aes(x = count, y = prob)) +
+              geom_line() +
+              geom_errorbar(aes(ymin = (prob - prob_error), ymax = (prob + prob_error))) +
+              geom_point() +
+              geom_hline(yintercept = 0.05, colour = "darkred") +
+labs(x="Number of species detected", y="Probability of detecting a species") +
+theme_bw ()
+                  
+```
