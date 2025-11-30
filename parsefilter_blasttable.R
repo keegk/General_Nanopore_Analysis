@@ -9,12 +9,12 @@ if (length(args)==0) {
   # set defaults below
 } else if (length(args)==1) {
   args[2] = "out.txt"
-  args[3] = 98
+  args[3] = 90
   args[4] = 1E-6
   args[5] = 100000
   args[6] = 2000
 } else if (length(args)==2) {
-  args[3] = 98
+  args[3] = 90
   args[4] = 1E-6
   args[5] = 100000
   args[6] = 2000
@@ -40,7 +40,7 @@ print(sprintf("Writing filtered output to file: %s", args[2]))
 library(stringr)
 library(dplyr) #needed for filter option?
 
-filtersomething <- function(df, pc.id.thresh = 98, eval.thresh = 1E-6,
+filtersomething <- function(df, pc.id.thresh = 90, eval.thresh = 1E-6, #normal brackets
                             gap.thresh = 100000, mismatch.thresh = 2000){
   # Filter the blast hit table for percentage identity,
   # evalue below a threshold, gaps below a threshold,
@@ -54,11 +54,16 @@ filtersomething <- function(df, pc.id.thresh = 98, eval.thresh = 1E-6,
   return(newdf)
 }
 
-parseBlastNT7 <- function(con, outname, pc.id.thresh = 98, eval.thresh = 1E-6,
-                          gap.thresh = 100000, mismatch.thresh = 2000){
+parseBlastNT7 <- function(con, outname, pc.id.thresh = 90, eval.thresh = 1E-6,                        
+						  gap.thresh = 100000, mismatch.thresh = 2000){
   
-  # Read blast results line by line from a large concatenated file of hit from
+  #parsing the blast nt database version 7
+to match the blast output 7 I used when blasting fasta files 
+	#Read blast results line by line from a large concatenated file of hit from
   # multiple queries, filtering the top hits.
+	#normal brackets = these are the arguments provided to the function
+	#curly brackets = tells you how to operate on the arguments
+	#we want to provide a connection (con) to a file
   
   pc.id.thresh <- as.numeric(pc.id.thresh)
   eval.thresh <- as.numeric(eval.thresh)
@@ -69,9 +74,10 @@ parseBlastNT7 <- function(con, outname, pc.id.thresh = 98, eval.thresh = 1E-6,
   #  print(eval.thresh)
   #  print(gap.thresh)
   #  print(mismatch.thresh)
-  
+
+# define metadata variables:
   blast.ver = NA
-  column.names <- c()
+  column.names <- c() # currently an empty vector as we dont know how many columns there are, its length is by default zero 
   n.hits <- NA
   out.hits <- NA
   nreads <- 0 # counter to count the total number of reads we parse.
@@ -80,12 +86,15 @@ parseBlastNT7 <- function(con, outname, pc.id.thresh = 98, eval.thresh = 1E-6,
   current_read <- NA # the current read id
   
   inc_time <- Sys.time()
-  # loop through the file reading a hit a line at the time looking for hits
+  # loop through the file reading a hit a line at the time looking for hits, while the length of a line is greater than zero, do:
+	#readLines remembers where it is in a file, we can use that to our advantage
   while(length(aline <- readLines(con, n = 1)) >0 ){
     
     # record the blast version, but only do this once for the first read
+	  #all the metadata lines in the concatenated file begin with a hash (#)
+	  #so, if the file starts with # BLASTN, tell us the version, but only for the first read
     if(startsWith(aline, "# BLASTN") & is.na(blast.ver)){
-      blast.ver <- strsplit(aline, split=" ")[[1]][3]
+      blast.ver <- strsplit(aline, split=" ")[[1]][3] #the first [[1]] tells you the string is made up of one thing and then the second value [[3]] tells you within this one line it has 3 elements/values
     }
     
     if(startsWith(aline, "# Query")){
@@ -111,21 +120,21 @@ parseBlastNT7 <- function(con, outname, pc.id.thresh = 98, eval.thresh = 1E-6,
     
     # get the column names for the blast output.
     # assumes BLAST output table format.
-    if(startsWith(aline, "# Fields") & length(column.names)==0){
-      line <- strsplit(aline, split=": ")[[1]][2]
-      line <- str_replace_all(line, " ", ".")
-      line <- str_replace_all(line, "\\.\\.", ".")
-      line <- str_replace_all(line, "\\.,\\.", ",.")
-      line <- str_replace_all(line, "%", "percent")
-      column.names <- strsplit(line, ",.")[[1]]
+    if(startsWith(aline, "# Fields") & length(column.names)==0){ #the length statement here is just syaing, if column.names is zero (which we have stated it is in the metadata section as we didn't know how many columns we would have), then run:
+      line <- strsplit(aline, split=": ")[[1]][2] #this is taking the second component of "Fields" which has all your column headers (query acc, subject ID etc, basically all the fields from the blast ouput)
+      line <- str_replace_all(line, " ", ".") #replace spaces in the field elements (query.acc etc) with a dot
+      line <- str_replace_all(line, "\\.\\.", ".") #the \\ is used to "escape" the dots (i.e treat them as literal dots, as . can mean all special characters, but we specifically want to act on . (in this case replace .. with .) so we have to say specifically to act on .
+      line <- str_replace_all(line, "\\.,\\.", ",.") #replace .,. with .
+      line <- str_replace_all(line, "%", "percent") #replace the sign % with the word percent
+      column.names <- strsplit(line, ",.")[[1]] #replace ,. with the first element of the list 
 	  write.table(t(data.frame(column.names)), file = outname, sep = ",",
 				  col.names = FALSE, row.names = FALSE)
     }
     
     # get the number of matching hits for this read, read them,
     # filter them, and write out the results
-    line.match <- str_match(aline, "# ([0-9]+) hits found")
-    if (!is.na(line.match[1][1])){
+    line.match <- str_match(aline, "# ([0-9]+) hits found") #if it starts with a hash and any number between 0-9 but could be more than one number so we put + after the 0-9 (output a number between 0-9 and there might be nmore than one of them) then do:
+    if (!is.na(line.match[1][1])){ 
       n.hits <- as.integer(line.match[1,2])
       if (n.hits > 0) {
         nread_hits <- nread_hits+1
@@ -147,7 +156,7 @@ parseBlastNT7 <- function(con, outname, pc.id.thresh = 98, eval.thresh = 1E-6,
         
         # concerned that for large file there are too many rows in
         # the output table to keep the table in memory in R. instead
-        # lets just try writing the fits out to the file when we
+        # lets just try writing the hits out to the file when we
         # process them...
         if (nreads==1){
           write.table(hit.lines, file = outname, sep = ",",
